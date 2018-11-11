@@ -12,13 +12,16 @@
 #include "QGCApplication.h"
 #include "PositionManager.h"
 
+#include <QGeoCoordinate>
+#include "Vehicle.h"
+
 /*-Local defines--------------------------------------------------------------*/
 
-// TODO: struct vs QGeoCoordinate (?) SKO
+// TODO: struct  SKO
 struct __GPS
 {
-    int x;
-    int y;
+    QGeoCoordinate coord;
+    double dir;
 };
 
 /*-ShipLanding-----------------------------------------------------------------*/
@@ -40,6 +43,8 @@ private:
 
     QGCApplication* qgc = QGCApplication::_app;
     QTimer* timerLoiter = new QTimer(this);
+
+    Vehicle*  _vehicle;
 
     __GPS plane;		// SKO
     __GPS ship;		// SKO

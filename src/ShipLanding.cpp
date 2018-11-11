@@ -38,7 +38,7 @@ void ShipLanding::prepareToLoiter()
 
 /*-Private functions----------------------------------------------------------*/
 
-ShipLanding::ShipLanding(QObject *parent) : QObject(parent)
+ShipLanding::ShipLanding(QObject *parent) : QObject(parent), _vehicle(NULL)
 /** Connects slots and signals, configures the timerLoiter. */
 {
     //Connect our buttons to corresponding functions.
@@ -54,6 +54,11 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent)
     // Timers
     timerLoiter->setSingleShot(false);
     connect(timerLoiter, &QTimer::timeout, this, &ShipLanding::loiterShip);
+
+    // Vehicl
+    if(qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()) {
+        _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+    }
 
     // TODO: Connect prepare to land to end of mission
 }
