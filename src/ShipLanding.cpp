@@ -40,7 +40,7 @@ void ShipLanding::prepareToLoiter()
 /*-Private functions----------------------------------------------------------*/
 
 ShipLanding::ShipLanding(QObject *parent) : QObject(parent), _vehicle(nullptr)
-/** Connects slots and signals, configures the timerLoiter. */
+  /** Connects slots and signals, configures the timerLoiter. */
 {
     //Connect our buttons to corresponding functions.
     connect(this, &ShipLanding::initDialog_yes, this, &ShipLanding::land);
@@ -49,7 +49,7 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent), _vehicle(nullptr)
     // TODO: Connect GQCPositionManager to USB_GPS
     connect(qgcApp()->toolbox()->qgcPositionManager(), &QGCPositionManager::positionInfoUpdated, this, &ShipLanding::update_posPlane);
     // TODO: Position plane
-    //connect(qgc->toolbox()->PositionManager(), &PlanePositionManager::positionInfoUpdated, this, &ShipLanding::update_posPlane);
+    //connect(qgcApp()->toolbox()->PositionManager(), &PlanePositionManager::positionInfoUpdated, this, &ShipLanding::update_posPlane);
 
     // Timers
     timerLoiter->setSingleShot(false);
@@ -67,13 +67,8 @@ ShipLanding::~ShipLanding()
 {
 }
 
-void ShipLanding::calculateDistance(__GPS plane, __GPS ship)
-/** Calculate the distance between plane and ship. Allow for the earth's curvature. */
-{
-    distance = 0;
-}
-
 QGeoCoordinate ShipLanding::calcLoiterPos()
+/** Calculate the position LOITER_DISTANCE_TO_SHIP away from Ship resting upon the heading. */
 {
     //TESTING START
     ship.dir = 90;
@@ -82,11 +77,10 @@ QGeoCoordinate ShipLanding::calcLoiterPos()
     ship.coord.setLongitude(8.5425730);
     //TESTING END
 
-
     QGeoCoordinate pos;
     int longitude = 0, latitude = 0;
 
-    if(ship.dir >= 0 && ship.dir < 90)
+    if (ship.dir >= 0 && ship.dir < 90)
     {
         longitude = int(round(sin(ship.dir * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
         latitude = int(round(cos(ship.dir * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
@@ -94,7 +88,8 @@ QGeoCoordinate ShipLanding::calcLoiterPos()
         pos.setLatitude(ship.coord.latitude() - (latitude/111300));
         pos.setLongitude(ship.coord.longitude() - (longitude/(111300*cos(ship.coord.longitude()*(M_PI / 180)))));
 
-    }else if (ship.dir >= 90 && ship.dir < 180)
+    }
+    else if (ship.dir >= 90 && ship.dir < 180)
     {
         longitude = int(round(sin((180 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
         latitude = int(round(cos((180 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
@@ -102,7 +97,8 @@ QGeoCoordinate ShipLanding::calcLoiterPos()
         pos.setLatitude(ship.coord.latitude() + (latitude/111300));
         pos.setLongitude(ship.coord.longitude() - (longitude/(111300*cos(ship.coord.longitude()*(M_PI / 180)))));
 
-    }else if (ship.dir >= 180 && ship.dir < 270)
+    }
+    else if (ship.dir >= 180 && ship.dir < 270)
     {
         longitude = int(round(sin((ship.dir - 180) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
         latitude = int(round(cos((ship.dir - 180) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
@@ -110,7 +106,8 @@ QGeoCoordinate ShipLanding::calcLoiterPos()
         pos.setLatitude(ship.coord.latitude() + (latitude/111300));
         pos.setLongitude(ship.coord.longitude() + (longitude/(111300*cos(ship.coord.longitude()*(M_PI / 180)))));
 
-    }else if (ship.dir >= 270 && ship.dir < 360)
+    }
+    else if (ship.dir >= 270 && ship.dir < 360)
     {
         longitude = int(round(sin((360 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
         latitude= int(round(cos((360 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
@@ -174,9 +171,7 @@ bool ShipLanding::cancelDialog()
 void ShipLanding::loiterShip()
 /** Build and send the loiter message to the plane. */
 {
-    calculateDistance(plane, ship);
-
-    if (distance > MAX_DISTANCE_TO_SHIP)
+    if (ship.coord.distanceTo(plane.coord) > MAX_DISTANCE_TO_SHIP)
     {
         /*
       * Send the plane 100m behind the ship.

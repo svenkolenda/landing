@@ -34,16 +34,16 @@ class ShipLanding : public QObject
 public:
     static ShipLanding* getInstance();
     static void release();
-     QGeoCoordinate calcLoiterPos(); //TODO Testing
+     QGeoCoordinate calcLoiterPos(); //TODO: public for testing
 
 public slots:
-    void prepareToLoiter();
+    Q_INVOKABLE void prepareToLoiter();
 
 private:
     //attributes
     static ShipLanding* _instance;
 
-    QGCApplication* qgc = QGCApplication::_app;
+    //QGCApplication* qgc = QGCApplication::_app;     // qgcApp() delivers Singleton, delete qgc (?)
     QTimer* timerLoiter = new QTimer(this);
 
     Vehicle*  _vehicle;
@@ -59,8 +59,8 @@ private:
     explicit ShipLanding(QObject *parent = nullptr);
     ~ShipLanding();
 
-    void calculateDistance(__GPS, __GPS);	// APF
-    //QGeoCoordinate calcLoiterPos(); //SKO
+    //void calcDistance(__GPS, __GPS);	// QGeoCoord, distanceTo(coord)
+    //QGeoCoordinate calcLoiterPos();   // TODO: public for testin
 
     void start_timerLoiter();
     void stop_timerLoiter();
