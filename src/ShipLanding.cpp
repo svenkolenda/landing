@@ -71,19 +71,19 @@ QGeoCoordinate ShipLanding::calcLoiterPos()
 /** Calculate the position LOITER_DISTANCE_TO_SHIP away from Ship resting upon the heading. */
 {
     //TESTING START
-    ship.dir = 90;
+    ship.dir = 180;
     ship.coord.setAltitude(500);
     ship.coord.setLatitude(47.4065160);
     ship.coord.setLongitude(8.5425730);
     //TESTING END
 
     QGeoCoordinate pos;
-    int longitude = 0, latitude = 0;
+    double longitude = 0, latitude = 0;
 
     if (ship.dir >= 0 && ship.dir < 90)
     {
-        longitude = int(round(sin(ship.dir * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
-        latitude = int(round(cos(ship.dir * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
+        longitude = sin(ship.dir * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
+        latitude = cos(ship.dir * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
 
         pos.setLatitude(ship.coord.latitude() - (latitude/111300));
         pos.setLongitude(ship.coord.longitude() - (longitude/(111300*cos(ship.coord.longitude()*(M_PI / 180)))));
@@ -91,8 +91,8 @@ QGeoCoordinate ShipLanding::calcLoiterPos()
     }
     else if (ship.dir >= 90 && ship.dir < 180)
     {
-        longitude = int(round(sin((180 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
-        latitude = int(round(cos((180 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
+        longitude = sin((180 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
+        latitude = cos((180 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
 
         pos.setLatitude(ship.coord.latitude() + (latitude/111300));
         pos.setLongitude(ship.coord.longitude() - (longitude/(111300*cos(ship.coord.longitude()*(M_PI / 180)))));
@@ -100,8 +100,8 @@ QGeoCoordinate ShipLanding::calcLoiterPos()
     }
     else if (ship.dir >= 180 && ship.dir < 270)
     {
-        longitude = int(round(sin((ship.dir - 180) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
-        latitude = int(round(cos((ship.dir - 180) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
+        longitude = sin((ship.dir - 180) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
+        latitude = cos((ship.dir - 180) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
 
         pos.setLatitude(ship.coord.latitude() + (latitude/111300));
         pos.setLongitude(ship.coord.longitude() + (longitude/(111300*cos(ship.coord.longitude()*(M_PI / 180)))));
@@ -109,13 +109,14 @@ QGeoCoordinate ShipLanding::calcLoiterPos()
     }
     else if (ship.dir >= 270 && ship.dir < 360)
     {
-        longitude = int(round(sin((360 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
-        latitude= int(round(cos((360 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP));
+        longitude = sin((360 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
+        latitude= cos((360 - ship.dir) * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
 
         pos.setLatitude(ship.coord.latitude() - (latitude/111300));
         pos.setLongitude(ship.coord.longitude() + (longitude/(111300*cos(ship.coord.longitude()*(M_PI / 180)))));
     }
     pos.setAltitude(LOITER_ALTITUDE);
+    qDebug() << pos.longitude() << "||" << pos.latitude() << "||" << longitude << "||" << latitude;
     return pos;
 }
 void ShipLanding::start_timerLoiter()
