@@ -15,9 +15,10 @@
 #include <QGeoCoordinate>
 #include "Vehicle.h"
 
+#include <math.h>
+
 /*-Local defines--------------------------------------------------------------*/
 
-// TODO: struct  SKO
 struct __GPS
 {
     QGeoCoordinate coord;
@@ -33,6 +34,7 @@ class ShipLanding : public QObject
 public:
     static ShipLanding* getInstance();
     static void release();
+     QGeoCoordinate calcLoiterPos(); //TODO Testing
 
 public slots:
     void prepareToLoiter();
@@ -46,8 +48,8 @@ private:
 
     Vehicle*  _vehicle;
 
-    __GPS plane;		// SKO
-    __GPS ship;		// SKO
+    __GPS plane;
+    __GPS ship;
     uint16_t distance;
 
     bool loiterShip_con = false;
@@ -58,6 +60,7 @@ private:
     ~ShipLanding();
 
     void calculateDistance(__GPS, __GPS);	// APF
+    //QGeoCoordinate calcLoiterPos(); //SKO
 
     void start_timerLoiter();
     void stop_timerLoiter();
