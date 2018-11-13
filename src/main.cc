@@ -26,6 +26,7 @@
 #include <QStringListModel>
 #include "QGCApplication.h"
 #include "AppMessages.h"
+#include "ShipLanding.h"
 
 #ifndef __mobile__
     #include "QGCSerialPortInfo.h"
@@ -205,6 +206,9 @@ int main(int argc, char *argv[])
     }
 #endif
 #endif // QT_DEBUG
+
+    // Register ShipLanding class to QML
+    qmlRegisterSingletonType<ShipLanding>("Qt.example.foo", 1, 0, "ShipLanding", &ShipLanding::qmlInstance);
 
     QGCApplication* app = new QGCApplication(argc, argv, runUnitTests);
     Q_CHECK_PTR(app);

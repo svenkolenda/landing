@@ -512,7 +512,7 @@ QGCView {
             buttonVisible:      [ _useChecklist, _guidedController.showTakeoff || !_guidedController.showLand, _guidedController.showLand && !_guidedController.showTakeoff, true, true, true ]
             buttonEnabled:      [ _useChecklist && _activeVehicle, _guidedController.showTakeoff, _guidedController.showLand, _guidedController.showRTL, _guidedController.showPause, _anyActionAvailable ]
 
-            property bool _anyActionAvailable: _guidedController.showStartMission || _guidedController.showResumeMission || _guidedController.showChangeAlt || _guidedController.showLandAbort
+            property bool _anyActionAvailable: _guidedController.showStartMission || _guidedController.showResumeMission || _guidedController.showChangeAlt || _guidedController.showLandAbort || _guidedController.showRTS
             property var _actionModel: [
                 {
                     title:      _guidedController.startMissionTitle,
@@ -543,6 +543,12 @@ QGCView {
                     text:       _guidedController.landAbortMessage,
                     action:     _guidedController.actionLandAbort,
                     visible:    _guidedController.showLandAbort
+                },
+                {
+                    title:      _guidedController.rtsTitle,
+                    text:       _guidedController.rtsMessage,
+                    action:     _guidedController.actionRTS,
+                    visible:    _guidedController.showRTS
                 }
             ]
 
@@ -566,6 +572,11 @@ QGCView {
                     name:       _guidedController.rtlTitle,
                     iconSource: "/res/rtl.svg",
                     action:     _guidedController.actionRTL
+                },
+                {
+                    name:       _guidedController.rtsTitle,
+                    iconSource: "/res/rts.svg",
+                    action:     _guidedController.actionRTS
                 },
                 {
                     name:       _guidedController.pauseTitle,

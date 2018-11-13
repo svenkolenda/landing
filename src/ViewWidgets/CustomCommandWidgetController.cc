@@ -30,20 +30,6 @@ CustomCommandWidgetController::CustomCommandWidgetController(void) :
     _customQmlFile = settings.value(_settingsKey).toString();
 }
 
-void CustomCommandWidgetController::start_landing()
-{
-    ShipLanding::getInstance()->prepareToLoiter();
-}
-
-void CustomCommandWidgetController::test_Loiter()
-{
-    if(_vehicle)
-    {
-        _vehicle->guidedModeGotoLocation(ShipLanding::getInstance()->calcLoiterPos());
-    }
-
-}
-
 void CustomCommandWidgetController::sendCommand(int commandId, QVariant componentId, QVariant confirm, QVariant param1, QVariant param2, QVariant param3, QVariant param4, QVariant param5, QVariant param6, QVariant param7)
 {
     Q_UNUSED(confirm);

@@ -12,14 +12,6 @@ ShipLanding* ShipLanding::_instance = nullptr;
 #define LOITER_ALTITUDE                      50     // meter
 
 /*-Public functions-----------------------------------------------------------*/
-
-ShipLanding* ShipLanding::getInstance()
-{
-    if (_instance == nullptr)
-        _instance = new ShipLanding();
-    return _instance;
-}
-
 void ShipLanding::release()
 {
     if (_instance != nullptr)
@@ -27,14 +19,30 @@ void ShipLanding::release()
     _instance = nullptr;
 }
 
+QObject* ShipLanding::qmlInstance(QQmlEngine *engine, QJSEngine *scriptEngine)
+{
+    Q_UNUSED(engine);
+    Q_UNUSED(scriptEngine);
+
+    if (_instance == nullptr)
+        _instance = new ShipLanding();
+    return _instance;;
+}
+
 /*-Public slots---------------------------------------------------------------*/
 
-void ShipLanding::prepareToLoiter()
-/** Entry point for the landing procedure.
- * Starts the timerLoiter. Aks for the user's okay to init the landing. */
+void ShipLanding::initDialog()
+/** Message Box to init the landing. */
 {
-    start_timerLoiter();
-    initDialog();				// ToDo: Check function without closing MsgBox
+    qDebug() << "Init Dialog yes";
+    emit confirmLanding();
+}
+
+void ShipLanding::cancelDialog()
+/** Message Box to cancel the Landing. */
+{
+    qDebug() << "Cancel Dialog yes";
+    emit confirmCancel();
 }
 
 /*-Private functions----------------------------------------------------------*/
@@ -42,9 +50,9 @@ void ShipLanding::prepareToLoiter()
 ShipLanding::ShipLanding(QObject *parent) : QObject(parent), _vehicle(nullptr)
   /** Connects slots and signals, configures the timerLoiter. */
 {
-    //Connect our buttons to corresponding functions.
-    connect(this, &ShipLanding::initDialog_yes, this, &ShipLanding::land);
-    connect(this, &ShipLanding::cancelDialog_yes, this, &ShipLanding::prepareToLoiter);
+    // Connect our signals to corresponding functions.
+    connect(this, &ShipLanding::confirmLanding, this, &ShipLanding::land);
+    connect(this, &ShipLanding::confirmCancel, this, &ShipLanding::prepareToLoiter);
 
     // TODO: Connect GQCPositionManager to USB_GPS
     connect(qgcApp()->toolbox()->qgcPositionManager(), &QGCPositionManager::positionInfoUpdated, this, &ShipLanding::update_posPlane);
@@ -102,43 +110,14 @@ void ShipLanding::stop_timerLoiter()
     timerLoiter->stop();
 }
 
-bool ShipLanding::initDialog()
-/** Message Box to init the landing. */
-{
-    // TODO: QGC Slider
-    QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(nullptr, "Land", "Quit?", QMessageBox::Yes|QMessageBox::No);
-    if (reply == QMessageBox::Yes)
-    {
-        emit initDialog_yes();
-        return true;
-    }
-    else
-    {
-        emit initDialog_no();
-        return false;
-    }
-}
-
-bool ShipLanding::cancelDialog()
-/** Message Box to cancel the Landing. */
-{
-    // TODO: QGC Slider
-    QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(nullptr, "Cancel Land", "Quit?", QMessageBox::Yes|QMessageBox::No);
-    if (reply == QMessageBox::Yes)
-    {
-        emit cancelDialog_yes();
-        return true;
-    }
-    else
-    {
-        emit cancelDialog_yes();
-        return false;
-    }
-}
-
 /*-Private Slots--------------------------------------------------------------*/
+
+void ShipLanding::prepareToLoiter()
+/** Entry point for the landing procedure.
+ * Starts the timerLoiter. Aks for the user's okay to init the landing. */
+{
+    start_timerLoiter();
+}
 
 void ShipLanding::loiterShip()
 /** Build and send the loiter message to the plane. */
@@ -159,8 +138,6 @@ void ShipLanding::land()
  * Provides the cancel option for the user. */
 {
     stop_timerLoiter();							// stop GPS from initiating Loiter
-
-    cancelDialog();							// TODO: parallel Execution ??
 
     /*
     * Something something landing
