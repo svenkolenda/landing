@@ -34,7 +34,7 @@ class ShipLanding : public QObject
 public:
     static ShipLanding* getInstance();
     static void release();
-     QGeoCoordinate calcLoiterPos(); //TODO: public for testing
+    QGeoCoordinate calcLoiterPos(); //TODO: public for testing
 
 public slots:
     Q_INVOKABLE void prepareToLoiter();
@@ -60,7 +60,7 @@ private:
     ~ShipLanding();
 
     //void calcDistance(__GPS, __GPS);	// QGeoCoord, distanceTo(coord)
-    //QGeoCoordinate calcLoiterPos();   // TODO: public for testin
+    //QGeoCoordinate calcLoiterPos();   // TODO: public for testing
 
     void start_timerLoiter();
     void stop_timerLoiter();
