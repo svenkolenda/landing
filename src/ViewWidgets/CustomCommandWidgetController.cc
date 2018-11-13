@@ -21,13 +21,27 @@
 const char* CustomCommandWidgetController::_settingsKey = "CustomCommand.QmlFile";
 
 CustomCommandWidgetController::CustomCommandWidgetController(void) :
-    _vehicle(NULL)
+    _vehicle(nullptr)
 {
     if(qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()) {
         _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
     }
     QSettings settings;
     _customQmlFile = settings.value(_settingsKey).toString();
+}
+
+void CustomCommandWidgetController::start_landing()
+{
+    ShipLanding::getInstance()->prepareToLoiter();
+}
+
+void CustomCommandWidgetController::test_Loiter()
+{
+    if(_vehicle)
+    {
+        _vehicle->guidedModeGotoLocation(ShipLanding::getInstance()->calcLoiterPos());
+    }
+
 }
 
 void CustomCommandWidgetController::sendCommand(int commandId, QVariant componentId, QVariant confirm, QVariant param1, QVariant param2, QVariant param3, QVariant param4, QVariant param5, QVariant param6, QVariant param7)
@@ -45,7 +59,7 @@ void CustomCommandWidgetController::sendCommand(int commandId, QVariant componen
 void CustomCommandWidgetController::selectQmlFile(void)
 {
     QSettings settings;
-    QString qmlFile = QGCQFileDialog::getOpenFileName(NULL, tr("Select custom Qml file"), QString(), tr("Qml files (*.qml)"));
+    QString qmlFile = QGCQFileDialog::getOpenFileName(nullptr, tr("Select custom Qml file"), QString(), tr("Qml files (*.qml)"));
     if (qmlFile.isEmpty()) {
         _customQmlFile.clear();
         settings.remove(_settingsKey);

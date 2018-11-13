@@ -52,6 +52,7 @@ Item {
     readonly property string setWaypointTitle:              qsTr("Set Waypoint")
     readonly property string gotoTitle:                     qsTr("Goto Location")
     readonly property string vtolTransitionTitle:           qsTr("VTOL Transition")
+    readonly property string initShipLandingTitle:          qsTr("Init ShipLanding")
 
     readonly property string armMessage:                        qsTr("Arm the vehicle.")
     readonly property string disarmMessage:                     qsTr("Disarm the vehicle")
@@ -73,6 +74,7 @@ Item {
     readonly property string mvPauseMessage:                    qsTr("Pause all vehicles at their current position.")
     readonly property string vtolTransitionFwdMessage:          qsTr("Transition VTOL to fixed wing flight.")
     readonly property string vtolTransitionMRMessage:           qsTr("Transition VTOL to multi-rotor flight.")
+    readonly property string initShipLandingMessage:            qsTr("Stop loiter and start the approach.")
 
     readonly property int actionRTL:                        1
     readonly property int actionLand:                       2
@@ -95,6 +97,7 @@ Item {
     readonly property int actionMVStartMission:             19
     readonly property int actionVtolTransitionToFwdFlight:  20
     readonly property int actionVtolTransitionToMRFlight:   21
+    readonly property int actionInitShipLanding:   21
 
     property bool showEmergenyStop:     _guidedActionsEnabled && !_hideEmergenyStop && _vehicleArmed && _vehicleFlying
     property bool showArm:              _guidedActionsEnabled && !_vehicleArmed
@@ -335,6 +338,11 @@ Item {
             confirmDialog.message = vtolTransitionMRMessage
             confirmDialog.hideTrigger = true
             break
+        case actionInitShipLanding :
+            confirmDialog.title = initShipLandingTitle
+            confirmDialog.message = initShipLandingMessage
+            confirmDialog.hideTrigger = true
+            break;
         default:
             console.warn("Unknown actionCode", actionCode)
             return
@@ -415,6 +423,9 @@ Item {
         case actionVtolTransitionToMRFlight:
             _activeVehicle.vtolInFwdFlight = false
             break
+        case actionInitShipLanding:
+            prepareToLoiter();
+            break;
         default:
             console.warn(qsTr("Internal error: unknown actionCode"), actionCode)
             break
