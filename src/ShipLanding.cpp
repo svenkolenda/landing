@@ -76,14 +76,17 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent), _vehicle(nullptr)
     connect(this, &ShipLanding::confirmCancel,
             this, &ShipLanding::prepareToLoiter);
 
-    // TODO: Connect GQCPositionManager to USB_GPS. Is update_posShip still needed?
+    // TODO: Connect GQCPositionManager to USB_GPS.
     connect(qgcApp()->toolbox()->qgcPositionManager(),
             &QGCPositionManager::positionInfoUpdated,
             this,
             &ShipLanding::update_posPlane);
 
-    // TODO: Position plane. Is update_posPlane still needed?
-    //connect(qgcApp()->toolbox()->PositionManager(), &PlanePositionManager::positionInfoUpdated, this, &ShipLanding::update_posPlane);
+    // TODO: Position plane.
+    /*connect(qgcApp()->toolbox()->PositionManager(),
+              &PlanePositionManager::positionInfoUpdated,
+              this,
+              &ShipLanding::update_posPlane);*/
 
     // Timers
     timerLoiter->setSingleShot(false);
@@ -101,7 +104,7 @@ ShipLanding::~ShipLanding()
 }
 
 QGeoCoordinate ShipLanding::calcLoiterPos()
-/** Calculate the position LOITER_DISTANCE_TO_SHIP away from Ship resting upon
+/** Calculate the position LOITER_DISTANCE_TO_SHIP away from ship, resting upon
     the heading. */
 {
     if (UNITTEST)
