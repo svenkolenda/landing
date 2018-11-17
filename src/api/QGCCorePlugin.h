@@ -13,7 +13,6 @@
 #include "QGCPalette.h"
 #include "QGCMAVLink.h"
 #include "QmlObjectListModel.h"
-
 #include <QObject>
 #include <QVariantList>
 

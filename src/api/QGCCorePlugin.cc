@@ -29,22 +29,22 @@ class QGCCorePlugin_p
 {
 public:
     QGCCorePlugin_p()
-        : pGeneral                  (NULL)
-        , pCommLinks                (NULL)
-        , pOfflineMaps              (NULL)
-        , pMAVLink                  (NULL)
-        , pConsole                  (NULL)
-        , pHelp                     (NULL)
+        : pGeneral                  (nullptr)
+        , pCommLinks                (nullptr)
+        , pOfflineMaps              (nullptr)
+        , pMAVLink                  (nullptr)
+        , pConsole                  (nullptr)
+        , pHelp                     (nullptr)
     #if defined(QT_DEBUG)
-        , pMockLink                 (NULL)
-        , pDebug                    (NULL)
+        , pMockLink                 (nullptr)
+        , pDebug                    (nullptr)
     #endif
-        , defaultOptions            (NULL)
-        , valuesPageWidgetInfo      (NULL)
-        , cameraPageWidgetInfo      (NULL)
-        , videoPageWidgetInfo       (NULL)
-        , healthPageWidgetInfo      (NULL)
-        , vibrationPageWidgetInfo   (NULL)
+        , defaultOptions            (nullptr)
+        , valuesPageWidgetInfo      (nullptr)
+        , cameraPageWidgetInfo      (nullptr)
+        , videoPageWidgetInfo       (nullptr)
+        , healthPageWidgetInfo      (nullptr)
+        , vibrationPageWidgetInfo   (nullptr)
     {
     }
 

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="390pt"
+   viewBox="0 -3 390.192 390"
+   width="390pt"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="rts.svg">
+  <metadata
+     id="metadata10">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs8" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="640"
+     inkscape:window-height="480"
+     id="namedview6"
+     showgrid="false"
+     inkscape:zoom="0.48410256"
+     inkscape:cx="243.75"
+     inkscape:cy="243.75"
+     inkscape:window-x="75"
+     inkscape:window-y="34"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg2" />
+  <path
+     d="m240 288.097656h-32v-64h64c61.761719 0 112-50.242187 112-112 0-61.761718-50.238281-111.9999998-112-111.9999998h-224v31.9999998c44.113281 0 80 35.886719 80 80 0 44.109375-35.886719 80-80 80v32h128v64h-32v-32h-144v80c0 26.46875 21.527344 48 48 48h299.527344l42.664062-128h-150.191406zm-113.6875-256h145.6875c38.632812 0 70.953125 27.527344 78.382812 64h-191.664062c-3.582031-24.890625-15.238281-47.195312-32.40625-64zm0 160c17.167969-16.808594 28.832031-39.113281 32.414062-64h191.664063c-7.429687 36.46875-39.75 64-78.382813 64zm145.6875 96h73.800781l-21.335937 64h-276.464844c-8.824219 0-16-7.175781-16-16v-48h80v32h160zm0 0"
+     id="path4"
+     style="fill:#f9f9f9" />
+</svg>

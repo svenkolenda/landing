@@ -32,18 +32,17 @@ class ShipLanding : public QObject
     Q_OBJECT
 
 public:
-    static ShipLanding* getInstance();
     static void release();
-     QGeoCoordinate calcLoiterPos(); //TODO: public for testing
+    static QObject* qmlInstance(QQmlEngine *engine, QJSEngine *scriptEngine);
 
 public slots:
-    Q_INVOKABLE void prepareToLoiter();
+    Q_INVOKABLE void initDialog();
+    Q_INVOKABLE void cancelDialog();
 
 private:
     //attributes
     static ShipLanding* _instance;
 
-    //QGCApplication* qgc = QGCApplication::_app;     // qgcApp() delivers Singleton, delete qgc (?)
     QTimer* timerLoiter = new QTimer(this);
 
     Vehicle*  _vehicle;
@@ -55,30 +54,26 @@ private:
     bool loiterShip_con = false;
     bool prepareToLand_con = false;
 
-   // functions
+    // functions
     explicit ShipLanding(QObject *parent = nullptr);
     ~ShipLanding();
 
-    //void calcDistance(__GPS, __GPS);	// QGeoCoord, distanceTo(coord)
-    //QGeoCoordinate calcLoiterPos();   // TODO: public for testin
+    QGeoCoordinate calcLoiterPos();
 
     void start_timerLoiter();
     void stop_timerLoiter();
 
-    bool initDialog();		// JGE
-    bool cancelDialog();	// JGE
-
 private slots:
+    void prepareToLoiter();
     void loiterShip();
     void land();
+
     void update_posPlane();	// SBR
     void update_posShip();	// SBR
 
 signals:
-    void initDialog_yes();
-    void initDialog_no();
-    void cancelDialog_yes();
-    void cancelDialog_no();
+    void confirmLanding();
+    void confirmCancel();
 
 };
 
