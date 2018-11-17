@@ -22,7 +22,7 @@
 struct __GPS
 {
     QGeoCoordinate coord;
-    double dir;
+    double dir = 0;
 };
 
 /*-ShipLanding-----------------------------------------------------------------*/

@@ -6,12 +6,33 @@ ShipLanding* ShipLanding::_instance = nullptr;
 
 /*-Local defines--------------------------------------------------------------*/
 
-#define MAX_DISTANCE_TO_SHIP                 300    // meter
-#define LOITER_DISTANCE_TO_SHIP              100    // meter
-#define LOITER_UPDATE                        10     // second
-#define LOITER_ALTITUDE                      50     // meter
+static const bool UNITTEST = false;
+
+/*
+ * WARNING:
+ * IF YOU CHANGE ANY OF THOSE, YOU BETTER MAKE SURE THAT THEY STILL FIT IN THE
+ * GIVEN DATATYPE!
+ */
+
+static const uint16_t MAX_DISTANCE_TO_SHIP = 300;      // meter
+static const uint8_t LOITER_DISTANCE_TO_SHIP = 100;    // meter
+static const uint8_t LOITER_UPDATE = 10;               // second
+static const uint8_t LOITER_ALTITUDE = 50;             // meter
+static const double HEADING_WEIGHT = 0.1;
+
+/*
+ * The following are necessary because the heading doesn't work like angles in
+ * a normal coordinate system (starting at the x-axis with 0 degrees going
+ * counterclockwise). Instead, it starts at NORTH (y-axis), going clockwise.
+ */
+
+static const uint8_t NORTH = 0; //degrees
+static const uint8_t EAST = 90; //degrees
+static const uint8_t SOUTH = 180; //degrees
+static const uint16_t WEST = 270; //degrees
 
 /*-Public functions-----------------------------------------------------------*/
+
 void ShipLanding::release()
 {
     if (_instance != nullptr)
@@ -52,11 +73,16 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent), _vehicle(nullptr)
 {
     // Connect our signals to corresponding functions.
     connect(this, &ShipLanding::confirmLanding, this, &ShipLanding::land);
-    connect(this, &ShipLanding::confirmCancel, this, &ShipLanding::prepareToLoiter);
+    connect(this, &ShipLanding::confirmCancel,
+            this, &ShipLanding::prepareToLoiter);
 
-    // TODO: Connect GQCPositionManager to USB_GPS
-    connect(qgcApp()->toolbox()->qgcPositionManager(), &QGCPositionManager::positionInfoUpdated, this, &ShipLanding::update_posPlane);
-    // TODO: Position plane
+    // TODO: Connect GQCPositionManager to USB_GPS. Is update_posShip still needed?
+    connect(qgcApp()->toolbox()->qgcPositionManager(),
+            &QGCPositionManager::positionInfoUpdated,
+            this,
+            &ShipLanding::update_posPlane);
+
+    // TODO: Position plane. Is update_posPlane still needed?
     //connect(qgcApp()->toolbox()->PositionManager(), &PlanePositionManager::positionInfoUpdated, this, &ShipLanding::update_posPlane);
 
     // Timers
@@ -64,9 +90,8 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent), _vehicle(nullptr)
     connect(timerLoiter, &QTimer::timeout, this, &ShipLanding::loiterShip);
 
     // Vehicle
-    if(qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()) {
+    if(qgcApp()->toolbox()->multiVehicleManager()->activeVehicle())
         _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-    }
 
     // TODO: Connect prepare to land to end of mission
 }
@@ -76,14 +101,16 @@ ShipLanding::~ShipLanding()
 }
 
 QGeoCoordinate ShipLanding::calcLoiterPos()
-/** Calculate the position LOITER_DISTANCE_TO_SHIP away from Ship resting upon the heading. */
+/** Calculate the position LOITER_DISTANCE_TO_SHIP away from Ship resting upon
+    the heading. */
 {
-    /**TESTING START
-    ship.dir =225;
-    ship.coord.setAltitude(500);
-    ship.coord.setLatitude(47.4065160);
-    ship.coord.setLongitude(8.5425730);
-    TESTING END */
+    if (UNITTEST)
+    {
+        ship.dir =225;
+        ship.coord.setAltitude(500);
+        ship.coord.setLatitude(47.4065160);
+        ship.coord.setLongitude(8.5425730);
+    }
 
     QGeoCoordinate pos;
     double longitude = 0, latitude = 0;
@@ -92,9 +119,14 @@ QGeoCoordinate ShipLanding::calcLoiterPos()
     latitude = cos(ship.dir * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
 
     pos.setLatitude(ship.coord.latitude() - (latitude/111300));
-    pos.setLongitude(ship.coord.longitude() - (longitude/(111300*cos(ship.coord.latitude()*(M_PI / 180)))));
+    pos.setLongitude(ship.coord.longitude() -
+                  (longitude/(111300*cos(ship.coord.latitude()*(M_PI / 180)))));
     pos.setAltitude(LOITER_ALTITUDE);
-    //Testing: qDebug() << pos.longitude() << "||" << pos.latitude() << "||" << longitude << "||" << latitude << "||" <<ship.coord.distanceTo(pos);
+
+    if (UNITTEST)
+        qDebug() << pos.longitude() << "||" << pos.latitude() << "||" <<
+             longitude << "||" << latitude << "||" <<ship.coord.distanceTo(pos);
+
     return pos;
 }
 
@@ -114,8 +146,9 @@ void ShipLanding::stop_timerLoiter()
 
 void ShipLanding::prepareToLoiter()
 /** Entry point for the landing procedure.
- * Starts the timerLoiter. Aks for the user's okay to init the landing. */
+ * Starts the timerLoiter. Asks for the user's okay to init the landing. */
 {
+    /* TODO: Is interfacing this really needed? */
     start_timerLoiter();
 }
 
@@ -137,7 +170,8 @@ void ShipLanding::land()
  * Build and send landing mission to plane. Observe the ship movement.
  * Provides the cancel option for the user. */
 {
-    stop_timerLoiter();							// stop GPS from initiating Loiter
+    /* TODO: Is interfacing this really needed? */
+    stop_timerLoiter();                       // stop GPS from initiating Loiter
 
     /*
     * Something something landing
@@ -163,15 +197,60 @@ void ShipLanding::land()
 }
 
 void ShipLanding::update_posPlane()
-/** Called when the ship moved. Update the saved location and heading. */
+/** Called when the plane moved. Update the saved location and heading. */
 {
     // Transfer GPS data to struct
     // TODO: QGCPositionManager => __GPS
 }
 
 void ShipLanding::update_posShip()
-/** Called when the plane moved. Update the saved location and heading. */
+/** Called when the ship moved. Update the saved location and heading. */
 {
+   /*
+    * Safe away the old GPS data to calculate heading later.
+    * @SBR: Please don't touch :)
+    * TODO: Remove all comments containing "@" in final code.
+    */
+    QGeoCoordinate old_ship_pos = this->ship.coord;
+
+    //@SBR: Start writing here.
+
     // Transfer GPs data to struct
     // TODO: QGCPositionManager => __GPS
+
+    //@SBR: Stop writing here.
+
+   /*
+    * Calculate heading.
+    * Idea: Start heading with 0 degrees.
+    * Afterwards, calculate a heading from old and new GPS.
+    * Add this heading to the new one, but weighed in with a factor.
+    * Please note that this won't work at 180 degrees longitude, but we are at
+    * mediteranian sea and this is supposed to be a workaround anyway, so I
+    * won't bother building this to work at 180 degrees.
+    */
+
+    double alpha; //Alpha shows the angle in a normal coordinate system.
+    double new_dir; //New direction.
+    QGeoCoordinate new_ship_pos = this->ship.coord; //New ship position.
+
+    alpha = atan((new_ship_pos.latitude() - old_ship_pos.latitude())/
+                 (new_ship_pos.longitude() - old_ship_pos.longitude()));
+
+    if (new_ship_pos.latitude() > old_ship_pos.latitude())
+    {
+        if (new_ship_pos.longitude() > old_ship_pos.longitude())
+            new_dir = EAST - alpha; //alpha is positive, first quadrant
+        else
+            new_dir = WEST - alpha; //alpha is negative, fourth quadrant
+    }
+    else
+    {
+        if (new_ship_pos.longitude() > old_ship_pos.longitude())
+            new_dir = WEST - alpha; //alpha is positive, third quadrant
+        else
+            new_dir = EAST - alpha; //alpha is negative, second quadrant
+    }
+
+    this->ship.dir += (HEADING_WEIGHT * new_dir);
 }
