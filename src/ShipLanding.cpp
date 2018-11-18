@@ -25,17 +25,6 @@ const unsigned int WP4_ALTITUDE = 5;        //!< Altitude (absolute) for wp4
 static const double HEADING_WEIGHT = 0.1;
 
 /*
- * WARNING:
- * IF YOU CHANGE ANY OF THOSE, YOU BETTER MAKE SURE THAT THEY STILL FIT IN THE
- * GIVEN DATATYPE!
- */
-
-//static const uint16_t MAX_DISTANCE = 300;      // meter
-//static const uint8_t LOITER_DISTANCE = 100;    // meter
-//static const uint8_t LOITER_UPDATE = 10;               // second
-//static const uint8_t LOITER_ALTITUDE = 50;             // meter
-
-/*
  * The following are necessary because the heading doesn't work like angles in
  * a normal coordinate system (starting at the x-axis with 0 degrees going
  * counterclockwise). Instead, it starts at NORTH (y-axis), going clockwise.
@@ -291,15 +280,8 @@ void ShipLanding::update_posShip()
             new_dir = WEST - alpha;
     }
 
-   /*
-    * If new heading is larger than old, add it. If smaller, substract it. And
-    * if they're equal, the old heading isn't changed at all.
-    */
-    this->ship.dir = this->ship.dir + (HEADING_WEIGHT * (new_dir - this->ship.dir));
-    if (new_dir > this->ship.dir)
-        this->ship.dir += (HEADING_WEIGHT * new_dir);
-    else if (new_dir < this->ship.dir)
-        this->ship.dir -= (HEADING_WEIGHT * new_dir);
+    this->ship.dir = this->ship.dir +
+                                  (HEADING_WEIGHT * (new_dir - this->ship.dir));
 
     return;
 }
