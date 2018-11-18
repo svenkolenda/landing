@@ -1,12 +1,28 @@
-/*-Includes-------------------------------------------------------------------*/
+﻿/*-Includes-------------------------------------------------------------------*/
 
 #include "ShipLanding.h"
 
 ShipLanding* ShipLanding::_instance = nullptr;
 
 /*-Local defines--------------------------------------------------------------*/
-
+#ifndef TEST
+#define TEST 1
+#endif
 static const bool UNITTEST = false;
+
+// Distance in meter, Time in seconds
+const unsigned int MAX_DISTANCE = 200;      //!< Maximum distance plane to ship
+const unsigned int LOITER_DISTANCE = 150;   //!< Distance plane to ship for loiter point
+const unsigned int LOITER_ALTITUDE = 50;    //!< Altitude (absolute) of the loiter point
+const unsigned int LOITER_UPDATE = 30;      //!< Timer intervall to check loiter
+const unsigned int WP2_DISTANCE = 100;      //!< Distance plane to ship for wp2
+const unsigned int WP2_ALTITUDE = 25;       //!< Altitude (absolute) for wp2
+const unsigned int WP3_DISTANCE = 50;       //!< Distance plane to ship for wp3
+const unsigned int WP3_ALTITUDE = 5;        //!< Altitude (absolute) for wp3
+const unsigned int WP4_DISTANCE = 0;        //!< Distance plane to ship for wp4
+const unsigned int WP4_ALTITUDE = 5;        //!< Altitude (absolute) for wp4
+
+static const double HEADING_WEIGHT = 0.1;
 
 /*
  * WARNING:
@@ -14,11 +30,10 @@ static const bool UNITTEST = false;
  * GIVEN DATATYPE!
  */
 
-static const uint16_t MAX_DISTANCE_TO_SHIP = 300;      // meter
-static const uint8_t LOITER_DISTANCE_TO_SHIP = 100;    // meter
-static const uint8_t LOITER_UPDATE = 10;               // second
-static const uint8_t LOITER_ALTITUDE = 50;             // meter
-static const double HEADING_WEIGHT = 0.1;
+//static const uint16_t MAX_DISTANCE = 300;      // meter
+//static const uint8_t LOITER_DISTANCE = 100;    // meter
+//static const uint8_t LOITER_UPDATE = 10;               // second
+//static const uint8_t LOITER_ALTITUDE = 50;             // meter
 
 /*
  * The following are necessary because the heading doesn't work like angles in
@@ -33,13 +48,6 @@ static const uint16_t WEST = 270; //degrees
 
 /*-Public functions-----------------------------------------------------------*/
 
-void ShipLanding::release()
-{
-    if (_instance != nullptr)
-        delete _instance;
-    _instance = nullptr;
-}
-
 QObject* ShipLanding::qmlInstance(QQmlEngine *engine, QJSEngine *scriptEngine)
 {
     Q_UNUSED(engine);
@@ -50,28 +58,36 @@ QObject* ShipLanding::qmlInstance(QQmlEngine *engine, QJSEngine *scriptEngine)
     return _instance;;
 }
 
+void ShipLanding::release()
+{
+    if (_instance != nullptr)
+        delete _instance;
+    _instance = nullptr;
+}
+
 /*-Public slots---------------------------------------------------------------*/
 
 void ShipLanding::initDialog()
-/** Message Box to init the landing. */
 {
+#ifdef TEST
     qDebug() << "Init Dialog yes";
+#endif
     emit confirmLanding();
 }
 
 void ShipLanding::cancelDialog()
-/** Message Box to cancel the Landing. */
 {
+#ifdef TEST
     qDebug() << "Cancel Dialog yes";
+#endif
     emit confirmCancel();
 }
 
 /*-Private functions----------------------------------------------------------*/
 
-ShipLanding::ShipLanding(QObject *parent) : QObject(parent), _vehicle(nullptr)
-  /** Connects slots and signals, configures the timerLoiter. */
+ShipLanding::ShipLanding(QObject *parent) : QObject(parent)
 {
-    // Connect our signals to corresponding functions.
+    // Connect our signals to corresponding functions
     connect(this, &ShipLanding::confirmLanding, this, &ShipLanding::land);
     connect(this, &ShipLanding::confirmCancel,
             this, &ShipLanding::prepareToLoiter);
@@ -88,13 +104,9 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent), _vehicle(nullptr)
               this,
               &ShipLanding::update_posPlane);*/
 
-    // Timers
+    // Initialize the timerLoiter
     timerLoiter->setSingleShot(false);
     connect(timerLoiter, &QTimer::timeout, this, &ShipLanding::loiterShip);
-
-    // Vehicle
-    if(qgcApp()->toolbox()->multiVehicleManager()->activeVehicle())
-        _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
 
     // TODO: Connect prepare to land to end of mission
 }
@@ -103,10 +115,15 @@ ShipLanding::~ShipLanding()
 {
 }
 
-QGeoCoordinate ShipLanding::calcLoiterPos()
-/** Calculate the position LOITER_DISTANCE_TO_SHIP away from ship, resting upon
-    the heading. */
+QGeoCoordinate ShipLanding::calcPosRelativeToShip(unsigned int distance, unsigned int alltitude)
 {
+    // TODO: Choose one!
+#if TEST == 1
+    ship.dir = 225;
+    ship.coord.setAltitude(500);
+    ship.coord.setLatitude(47.4065160);
+    ship.coord.setLongitude(8.5425730);
+#endif
     if (UNITTEST)
     {
         ship.dir =225;
@@ -116,31 +133,36 @@ QGeoCoordinate ShipLanding::calcLoiterPos()
     }
 
     QGeoCoordinate pos;
-    double longitude = 0, latitude = 0;
+    double dx = 0, dy = 0;
+    const unsigned int gapLatitude = 111300;
+    const double degreeToRad = M_PI / 180;
 
-    longitude = sin(ship.dir * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
-    latitude = cos(ship.dir * M_PI / 180) * LOITER_DISTANCE_TO_SHIP;
+    dx = sin(ship.dir * degreeToRad) * distance;
+    dy = cos(ship.dir * degreeToRad) * distance;
 
-    pos.setLatitude(ship.coord.latitude() - (latitude/111300));
-    pos.setLongitude(ship.coord.longitude() -
-                  (longitude/(111300*cos(ship.coord.latitude()*(M_PI / 180)))));
-    pos.setAltitude(LOITER_ALTITUDE);
+    pos.setLatitude(ship.coord.latitude() - dy / gapLatitude);
+    pos.setLongitude(ship.coord.longitude() - dx / gapLatitude * cos(ship.coord.latitude() * degreeToRad));
+    pos.setAltitude(alltitude);
 
+    // TODO: Choose one!
+#if TEST == 1
+    qDebug() << "Longitude: " << pos.longitude() << " | Latitude: " << pos.latitude()
+             << " | dx: " << dx << " | dy: " << dy
+             << " | distanceTo ship: " << ship.coord.distanceTo(pos);
+#endif
     if (UNITTEST)
-        qDebug() << pos.longitude() << "||" << pos.latitude() << "||" <<
-             longitude << "||" << latitude << "||" <<ship.coord.distanceTo(pos);
-
+        qDebug() << "Longitude: " << pos.longitude() << " | Latitude: " << pos.latitude()
+                 << " | dx: " << dx << " | dy: " << dy
+                 << " | distanceTo ship: " << ship.coord.distanceTo(pos);
     return pos;
 }
 
 void ShipLanding::start_timerLoiter()
-/** Start the timer for loiter update. */
 {
     timerLoiter->start(LOITER_UPDATE * 1000);
 }
 
 void ShipLanding::stop_timerLoiter()
-/** Stop the timer for loiter update. */
 {
     timerLoiter->stop();
 }
@@ -148,33 +170,28 @@ void ShipLanding::stop_timerLoiter()
 /*-Private Slots--------------------------------------------------------------*/
 
 void ShipLanding::prepareToLoiter()
-/** Entry point for the landing procedure.
- * Starts the timerLoiter. Asks for the user's okay to init the landing. */
 {
     /* TODO: Is interfacing this really needed? */
     start_timerLoiter();
 }
 
 void ShipLanding::loiterShip()
-/** Build and send the loiter message to the plane. */
 {
-    if (ship.coord.distanceTo(plane.coord) > MAX_DISTANCE_TO_SHIP)
+    if (ship.coord.distanceTo(plane.coord) > MAX_DISTANCE)
     {
-        /** Send the plane 100m behind the ship.*/
+        Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+        // Send the plane distance behind the ship
         if(_vehicle)
         {
-            _vehicle->guidedModeGotoLocation(calcLoiterPos());
+            _vehicle->guidedModeGotoLocation(calcPosRelativeToShip(LOITER_DISTANCE, LOITER_ALTITUDE));
         }
     }
 }
 
 void ShipLanding::land()
-/** Called after user starts the landing. Stops the timerLoiter.
- * Build and send landing mission to plane. Observe the ship movement.
- * Provides the cancel option for the user. */
 {
     /* TODO: Is interfacing this really needed? */
-    stop_timerLoiter();                       // stop GPS from initiating Loiter
+    stop_timerLoiter();                     // stop timer to cancel loiter-check
 
     /*
     * Something something landing
@@ -184,10 +201,17 @@ void ShipLanding::land()
     *  - mission + L1 library
     */
 
-    // 1. WP: Loiter
     // 2. WP: Loiter down to goal height
-    // 3. WP: Net
+    QGeoCoordinate wp2 = calcPosRelativeToShip(WP2_DISTANCE, WP2_ALTITUDE);
+
+    // 3. WP: Before Net
+    QGeoCoordinate wp3 = calcPosRelativeToShip(WP3_DISTANCE, WP3_ALTITUDE);
+
     // 4. WP: Behind ship so that we won't loiter
+    QGeoCoordinate wp4 = calcPosRelativeToShip(WP4_DISTANCE, WP4_ALTITUDE);
+
+    qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()->missionManager()->writeMissionItems(missionItems);
+
     // After 4. WP: Go back to WP2 and start again (some height)
 
     // Erweiterung: Beurteilung - Schaffe ich es noch? Ab Headingsänderung so und so lade neue Mission hoch
@@ -200,14 +224,12 @@ void ShipLanding::land()
 }
 
 void ShipLanding::update_posPlane()
-/** Called when the plane moved. Update the saved location and heading. */
 {
     // Transfer GPS data to struct
     // TODO: QGCPositionManager => __GPS
 }
 
 void ShipLanding::update_posShip()
-/** Called when the ship moved. Update the saved location and heading. */
 {
    /*
     * Safe away the old GPS data to calculate heading later.
