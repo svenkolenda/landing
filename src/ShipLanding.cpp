@@ -176,7 +176,7 @@ void ShipLanding::land()
     /* TODO: Is interfacing this really needed? */
     stop_timerLoiter();                       // stop GPS from initiating Loiter
 
-    /*
+   /*
     * Something something landing
     * Ideas what could happen here:
     *  - mission + second mission in background
@@ -237,23 +237,47 @@ void ShipLanding::update_posShip()
     double new_dir; //New direction.
     QGeoCoordinate new_ship_pos = this->ship.coord; //New ship position.
 
-    alpha = atan((new_ship_pos.latitude() - old_ship_pos.latitude())/
-                 (new_ship_pos.longitude() - old_ship_pos.longitude()));
-
-    if (new_ship_pos.latitude() > old_ship_pos.latitude())
+    if (new_ship_pos.longitude() == old_ship_pos.longitude())
     {
-        if (new_ship_pos.longitude() > old_ship_pos.longitude())
-            new_dir = EAST - alpha; //alpha is positive, first quadrant
+       /*
+        * We cannot calculate alpha in this case, because we would divide by
+        * zero.
+        */
+        if (new_ship_pos.latitude() == old_ship_pos.latitude())
+            return; //Heading doesn't change if the positions are equal
+        else if (new_ship_pos.latitude() > old_ship_pos.latitude())
+            new_dir = NORTH;
         else
-            new_dir = WEST - alpha; //alpha is negative, fourth quadrant
+            new_dir = SOUTH;
     }
     else
     {
+        alpha = atan((new_ship_pos.latitude() - old_ship_pos.latitude())/
+                     (new_ship_pos.longitude() - old_ship_pos.longitude()));
+
+       /*
+        * First and second quadrant. If alpha turns out negative, it's second
+        * quadrant. If alpha turns out positive, it's in the first one.
+        */
         if (new_ship_pos.longitude() > old_ship_pos.longitude())
-            new_dir = WEST - alpha; //alpha is positive, third quadrant
+            new_dir = EAST - alpha;
+        /*
+         * Third and fourth quadrant. If alpha turns out negative, it's fourth
+         * quadrant. If alpha turns out positive, it's in the third one.
+         */
         else
-            new_dir = EAST - alpha; //alpha is negative, second quadrant
+            new_dir = WEST - alpha;
     }
 
-    this->ship.dir += (HEADING_WEIGHT * new_dir);
+   /*
+    * If new heading is larger than old, add it. If smaller, substract it. And
+    * if they're equal, the old heading isn't changed at all.
+    */
+    this->ship.dir = this->ship.dir + (HEADING_WEIGHT * (new_dir - this->ship.dir));
+    if (new_dir > this->ship.dir)
+        this->ship.dir += (HEADING_WEIGHT * new_dir);
+    else if (new_dir < this->ship.dir)
+        this->ship.dir -= (HEADING_WEIGHT * new_dir);
+
+    return;
 }
