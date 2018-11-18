@@ -83,7 +83,7 @@ private:
      * \param alltitude planned absolute alltitude
      * \return
      */
-    QGeoCoordinate calcPosRelativeToShip(unsigned, unsigned);
+    QGeoCoordinate calcPosRelativeToShip(int, unsigned int);
 
     /*!
      * \brief Start the timer for loiter update.

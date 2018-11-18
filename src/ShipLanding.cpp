@@ -5,24 +5,21 @@
 ShipLanding* ShipLanding::_instance = nullptr;
 
 /*-Local defines--------------------------------------------------------------*/
-#ifndef TEST
-#define TEST 1
-#endif
-static const bool UNITTEST = false;
+const bool UNITTEST = false;
 
 // Distance in meter, Time in seconds
-const unsigned int MAX_DISTANCE = 200;      //!< Maximum distance plane to ship
-const unsigned int LOITER_DISTANCE = 150;   //!< Distance plane to ship for loiter point
-const unsigned int LOITER_ALTITUDE = 50;    //!< Altitude (absolute) of the loiter point
-const unsigned int LOITER_UPDATE = 30;      //!< Timer intervall to check loiter
-const unsigned int WP2_DISTANCE = 100;      //!< Distance plane to ship for wp2
-const unsigned int WP2_ALTITUDE = 25;       //!< Altitude (absolute) for wp2
-const unsigned int WP3_DISTANCE = 50;       //!< Distance plane to ship for wp3
-const unsigned int WP3_ALTITUDE = 5;        //!< Altitude (absolute) for wp3
-const unsigned int WP4_DISTANCE = 0;        //!< Distance plane to ship for wp4
-const unsigned int WP4_ALTITUDE = 5;        //!< Altitude (absolute) for wp4
+const int MAX_DISTANCE = 200;      //!< Maximum distance plane to ship
+const int LOITER_DISTANCE = 150;   //!< Distance plane to ship for loiter point
+const int LOITER_ALTITUDE = 50;    //!< Altitude (absolute) of the loiter point
+const int LOITER_UPDATE = 30;      //!< Timer intervall to check loiter
+const int WP2_DISTANCE = 100;      //!< Distance plane to ship for wp2
+const int WP2_ALTITUDE = 25;       //!< Altitude (absolute) for wp2
+const int WP3_DISTANCE = 50;       //!< Distance plane to ship for wp3
+const int WP3_ALTITUDE = 5;        //!< Altitude (absolute) for wp3
+const int WP4_DISTANCE = -100;     //!< Distance plane to ship for wp4
+const int WP4_ALTITUDE = 5;        //!< Altitude (absolute) for wp4
 
-static const double HEADING_WEIGHT = 0.1;
+const double HEADING_WEIGHT = 0.1;
 
 /*
  * The following are necessary because the heading doesn't work like angles in
@@ -30,10 +27,10 @@ static const double HEADING_WEIGHT = 0.1;
  * counterclockwise). Instead, it starts at NORTH (y-axis), going clockwise.
  */
 
-static const uint8_t NORTH = 0; //degrees
-static const uint8_t EAST = 90; //degrees
-static const uint8_t SOUTH = 180; //degrees
-static const uint16_t WEST = 270; //degrees
+const int NORTH = 0; //degrees
+const int EAST = 90; //degrees
+const int SOUTH = 180; //degrees
+const int WEST = 270; //degrees
 
 /*-Public functions-----------------------------------------------------------*/
 
@@ -88,10 +85,10 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent)
             &ShipLanding::update_posPlane);
 
     // TODO: Position plane.
-    /*connect(qgcApp()->toolbox()->PositionManager(),
-              &PlanePositionManager::positionInfoUpdated,
-              this,
-              &ShipLanding::update_posPlane);*/
+    /* connect(qgcApp()->toolbox()->PositionManager(),
+            &PlanePositionManager::positionInfoUpdated,
+            this,
+            &ShipLanding::update_posPlane);*/
 
     // Initialize the timerLoiter
     timerLoiter->setSingleShot(false);
@@ -104,23 +101,18 @@ ShipLanding::~ShipLanding()
 {
 }
 
-QGeoCoordinate ShipLanding::calcPosRelativeToShip(unsigned int distance, unsigned int alltitude)
+QGeoCoordinate ShipLanding::calcPosRelativeToShip
+(int distance, unsigned int altitude)
 {
-    // TODO: Choose one!
-#if TEST == 1
-    ship.dir = 225;
-    ship.coord.setAltitude(500);
-    ship.coord.setLatitude(47.4065160);
-    ship.coord.setLongitude(8.5425730);
-#endif
     if (UNITTEST)
     {
-        ship.dir =225;
+        ship.dir = 225;
         ship.coord.setAltitude(500);
         ship.coord.setLatitude(47.4065160);
         ship.coord.setLongitude(8.5425730);
     }
 
+    /* TODO: Get rid of the magic numbers. */
     QGeoCoordinate pos;
     double dx = 0, dy = 0;
     const unsigned int gapLatitude = 111300;
@@ -130,17 +122,13 @@ QGeoCoordinate ShipLanding::calcPosRelativeToShip(unsigned int distance, unsigne
     dy = cos(ship.dir * degreeToRad) * distance;
 
     pos.setLatitude(ship.coord.latitude() - dy / gapLatitude);
-    pos.setLongitude(ship.coord.longitude() - dx / gapLatitude * cos(ship.coord.latitude() * degreeToRad));
-    pos.setAltitude(alltitude);
+    pos.setLongitude(ship.coord.longitude() - dx /
+                        gapLatitude * cos(ship.coord.latitude() * degreeToRad));
+    pos.setAltitude(altitude);
 
-    // TODO: Choose one!
-#if TEST == 1
-    qDebug() << "Longitude: " << pos.longitude() << " | Latitude: " << pos.latitude()
-             << " | dx: " << dx << " | dy: " << dy
-             << " | distanceTo ship: " << ship.coord.distanceTo(pos);
-#endif
     if (UNITTEST)
-        qDebug() << "Longitude: " << pos.longitude() << " | Latitude: " << pos.latitude()
+        qDebug() << "Longitude: " << pos.longitude()
+                 << " | Latitude: " << pos.latitude()
                  << " | dx: " << dx << " | dy: " << dy
                  << " | distanceTo ship: " << ship.coord.distanceTo(pos);
     return pos;
@@ -168,12 +156,12 @@ void ShipLanding::loiterShip()
 {
     if (ship.coord.distanceTo(plane.coord) > MAX_DISTANCE)
     {
-        Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+        Vehicle* _vehicle =
+                    qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+
         // Send the plane distance behind the ship
         if(_vehicle)
-        {
             _vehicle->guidedModeGotoLocation(calcPosRelativeToShip(LOITER_DISTANCE, LOITER_ALTITUDE));
-        }
     }
 }
 
@@ -182,13 +170,9 @@ void ShipLanding::land()
     /* TODO: Is interfacing this really needed? */
     stop_timerLoiter();                     // stop timer to cancel loiter-check
 
-   /*
-    * Something something landing
-    * Ideas what could happen here:
-    *  - mission + second mission in background
-    *  - mission + check for missed boundaries via geofence + check for proper height with altitude check
-    *  - mission + L1 library
-    */
+    //Get vehicle
+    Vehicle* vehicle =
+                    qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
 
     // 2. WP: Loiter down to goal height
     QGeoCoordinate wp2 = calcPosRelativeToShip(WP2_DISTANCE, WP2_ALTITUDE);
@@ -199,7 +183,7 @@ void ShipLanding::land()
     // 4. WP: Behind ship so that we won't loiter
     QGeoCoordinate wp4 = calcPosRelativeToShip(WP4_DISTANCE, WP4_ALTITUDE);
 
-    qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()->missionManager()->writeMissionItems(missionItems);
+    vehicle->missionManager()->writeMissionItems(missionItems);
 
     // After 4. WP: Go back to WP2 and start again (some height)
 
