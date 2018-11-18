@@ -96,10 +96,6 @@ private:
 
 private slots:
     /*!
-     * \brief Entry point for the landing procedure. Starts the timerLoiter.
-     */
-    void prepareToLoiter();
-    /*!
      * \brief Build and send the loiter message to the plane.
      */
     void loiterShip();

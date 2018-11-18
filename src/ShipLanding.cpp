@@ -6,6 +6,7 @@ ShipLanding* ShipLanding::_instance = nullptr;
 
 /*-Local defines--------------------------------------------------------------*/
 const bool UNITTEST = false;
+const double float_epsilon = 1e-3;
 
 // Distance in meter, Time in seconds
 const int MAX_DISTANCE = 200;      //!< Maximum distance plane to ship
@@ -41,7 +42,7 @@ QObject* ShipLanding::qmlInstance(QQmlEngine *engine, QJSEngine *scriptEngine)
 
     if (_instance == nullptr)
         _instance = new ShipLanding();
-    return _instance;;
+    return _instance;
 }
 
 void ShipLanding::release()
@@ -55,17 +56,15 @@ void ShipLanding::release()
 
 void ShipLanding::initDialog()
 {
-#ifdef TEST
-    qDebug() << "Init Dialog yes";
-#endif
+    qDebug() << "Confirmed Landing";
+    stop_timerLoiter();                     // stop timer to cancel loiter-check
     emit confirmLanding();
 }
 
 void ShipLanding::cancelDialog()
 {
-#ifdef TEST
-    qDebug() << "Cancel Dialog yes";
-#endif
+    qDebug() << "Confirmed Cancel";
+    start_timerLoiter();
     emit confirmCancel();
 }
 
@@ -75,8 +74,6 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent)
 {
     // Connect our signals to corresponding functions
     connect(this, &ShipLanding::confirmLanding, this, &ShipLanding::land);
-    connect(this, &ShipLanding::confirmCancel,
-            this, &ShipLanding::prepareToLoiter);
 
     // TODO: Connect GQCPositionManager to USB_GPS.
     connect(qgcApp()->toolbox()->qgcPositionManager(),
@@ -122,8 +119,8 @@ QGeoCoordinate ShipLanding::calcPosRelativeToShip
     dy = cos(ship.dir * degreeToRad) * distance;
 
     pos.setLatitude(ship.coord.latitude() - dy / gapLatitude);
-    pos.setLongitude(ship.coord.longitude() - dx /
-                        gapLatitude * cos(ship.coord.latitude() * degreeToRad));
+    pos.setLongitude(ship.coord.longitude() - dx / gapLatitude *
+                     cos(ship.coord.latitude() * degreeToRad));
     pos.setAltitude(altitude);
 
     if (UNITTEST)
@@ -146,19 +143,12 @@ void ShipLanding::stop_timerLoiter()
 
 /*-Private Slots--------------------------------------------------------------*/
 
-void ShipLanding::prepareToLoiter()
-{
-    /* TODO: Is interfacing this really needed? */
-    start_timerLoiter();
-}
-
 void ShipLanding::loiterShip()
 {
-    if (ship.coord.distanceTo(plane.coord) > MAX_DISTANCE)
+    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+    // Check distance plane - ship too far
+    if (ship.coord.distanceTo(_vehicle->coordinate()) > MAX_DISTANCE)
     {
-        Vehicle* _vehicle =
-                    qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-
         // Send the plane distance behind the ship
         if(_vehicle)
             _vehicle->guidedModeGotoLocation(calcPosRelativeToShip(LOITER_DISTANCE, LOITER_ALTITUDE));
@@ -167,12 +157,8 @@ void ShipLanding::loiterShip()
 
 void ShipLanding::land()
 {
-    /* TODO: Is interfacing this really needed? */
-    stop_timerLoiter();                     // stop timer to cancel loiter-check
-
     //Get vehicle
-    Vehicle* vehicle =
-                    qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+    Vehicle* vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
 
     // 2. WP: Loiter down to goal height
     QGeoCoordinate wp2 = calcPosRelativeToShip(WP2_DISTANCE, WP2_ALTITUDE);
@@ -183,7 +169,7 @@ void ShipLanding::land()
     // 4. WP: Behind ship so that we won't loiter
     QGeoCoordinate wp4 = calcPosRelativeToShip(WP4_DISTANCE, WP4_ALTITUDE);
 
-    vehicle->missionManager()->writeMissionItems(missionItems);
+    //vehicle->missionManager()->writeMissionItems(missionItems);
 
     // After 4. WP: Go back to WP2 and start again (some height)
 
@@ -209,7 +195,7 @@ void ShipLanding::update_posShip()
     * @SBR: Please don't touch :)
     * TODO: Remove all comments containing "@" in final code.
     */
-    QGeoCoordinate old_ship_pos = this->ship.coord;
+    QGeoCoordinate old_ship_pos = ship.coord;
 
     //@SBR: Start writing here.
 
@@ -232,13 +218,13 @@ void ShipLanding::update_posShip()
     double new_dir; //New direction.
     QGeoCoordinate new_ship_pos = this->ship.coord; //New ship position.
 
-    if (new_ship_pos.longitude() == old_ship_pos.longitude())
+    if (fabs(new_ship_pos.longitude() - old_ship_pos.longitude()) < float_epsilon)
     {
        /*
         * We cannot calculate alpha in this case, because we would divide by
         * zero.
         */
-        if (new_ship_pos.latitude() == old_ship_pos.latitude())
+        if (fabs(new_ship_pos.latitude() - old_ship_pos.latitude()) < float_epsilon)
             return; //Heading doesn't change if the positions are equal
         else if (new_ship_pos.latitude() > old_ship_pos.latitude())
             new_dir = NORTH;
@@ -264,8 +250,5 @@ void ShipLanding::update_posShip()
             new_dir = WEST - alpha;
     }
 
-    this->ship.dir = this->ship.dir +
-                                  (HEADING_WEIGHT * (new_dir - this->ship.dir));
-
-    return;
+    ship.dir = ship.dir + (HEADING_WEIGHT * (new_dir - ship.dir));
 }
