@@ -81,7 +81,7 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent)
             this,
             &ShipLanding::update_posPlane);
 
-    // TODO: Position plane.
+    // TODO: Position plane - nicht mehr notwendig
     /* connect(qgcApp()->toolbox()->PositionManager(),
             &PlanePositionManager::positionInfoUpdated,
             this,
@@ -186,6 +186,11 @@ void ShipLanding::update_posPlane()
 {
     // Transfer GPS data to struct
     // TODO: QGCPositionManager => __GPS
+
+    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle(); //vehicle.h/_coordinate
+    plane.coord = _vehicle->coordinate();
+
+
 }
 
 void ShipLanding::update_posShip()
@@ -201,6 +206,11 @@ void ShipLanding::update_posShip()
 
     // Transfer GPs data to struct
     // TODO: QGCPositionManager => __GPS
+
+   //Z. 54 QGCToolbox.h - PositionManger.h - PositionManager.cc Z.63
+
+  //  QGCPositionManager* _qgcPositionManager = qgcApp()->toolbox()->qgcPositionManager()->positionInfoUpdated();
+  //  ship.coord = _qgcPositionManager->update();
 
     //@SBR: Stop writing here.
 

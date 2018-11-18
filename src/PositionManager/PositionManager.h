@@ -39,14 +39,20 @@ public:
     void setToolbox(QGCToolbox* toolbox);
 
     void setNmeaSourceDevice(QIODevice* device);
-
-private slots:
-    void _positionUpdated(const QGeoPositionInfo &update);
-    void _error(QGeoPositionInfoSource::Error positioningError);
+ public slots:
+    void _positionUpdated(const QGeoPositionInfo &update); //verändert
 
 signals:
     void lastPositionUpdated(bool valid, QVariant lastPosition);
     void positionInfoUpdated(QGeoPositionInfo update);
+
+private slots:
+  //  void _positionUpdated(const QGeoPositionInfo &update);
+    void _error(QGeoPositionInfoSource::Error positioningError);
+
+/*signals:
+    void lastPositionUpdated(bool valid, QVariant lastPosition);
+    void positionInfoUpdated(QGeoPositionInfo update);*/
 
 private:
     int _updateInterval;
