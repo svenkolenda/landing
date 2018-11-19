@@ -154,20 +154,23 @@ void ShipLanding::stop_timerObserve()
 
 void ShipLanding::loiterSend()
 {
-    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()
+                                                              ->activeVehicle();
     // Check distance plane - ship too far
     if (ship.coord.distanceTo(_vehicle->coordinate()) > MAX_DISTANCE)
     {
         // Send the plane distance behind the ship
         if(_vehicle)
-            _vehicle->guidedModeGotoLocation(calcPosRelativeToShip(LOITER_DISTANCE, LOITER_ALTITUDE));
+            _vehicle->guidedModeGotoLocation
+                      (calcPosRelativeToShip(LOITER_DISTANCE, LOITER_ALTITUDE));
     }
 }
 
 void ShipLanding::landSend()
 {
     //Get vehicle
-    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()
+                                                              ->activeVehicle();
 
     QList<QGeoCoordinate> wp;
     // WP0: Down to altitude
@@ -180,18 +183,19 @@ void ShipLanding::landSend()
     // Convert Waypoints into MissionItems
     QList<MissionItem*> landingItems;
     for (int i=0; i<wp.count(); i++) {
-        landingItems.push_back(new MissionItem(WP_SEQ_NR,               // sequence number
-                                               MAV_CMD_NAV_WAYPOINT,    // command
-                                               MAV_FRAME_GLOBAL,        // frame
-                                               WP_LOITER_TIME,          // param1 hold time
-                                               WP_ACCEPT_RADIUS,        // param2 acceptance radius
-                                               WP_PASS_TROUGH,          // param3 pass trough
-                                               std::numeric_limits<int>::quiet_NaN(),   // param4 yaw angle
-                                               wp.at(i).latitude(),     // param5 latitude
-                                               wp.at(i).longitude(),    // param6 longitude
-                                               wp.at(i).altitude(),     // param7 altitude
-                                               true,                    // autoContinue
-                                               i==0));                  // is current Item
+        landingItems.push_back
+            (new MissionItem(WP_SEQ_NR,               // sequence number
+             MAV_CMD_NAV_WAYPOINT,    // command
+             MAV_FRAME_GLOBAL,        // frame
+             WP_LOITER_TIME,          // param1 hold time
+             WP_ACCEPT_RADIUS,        // param2 acceptance radius
+             WP_PASS_TROUGH,          // param3 pass trough
+             std::numeric_limits<int>::quiet_NaN(),   // param4 yaw angle
+             wp.at(i).latitude(),     // param5 latitude
+             wp.at(i).longitude(),    // param6 longitude
+             wp.at(i).altitude(),     // param7 altitude
+             true,                    // autoContinue
+             i==0));                  // is current Item
     }
     //vehicle->missionManager()->writeMissionItem(landingItems);
 
@@ -218,24 +222,29 @@ void ShipLanding::update_posPlane()
 {
     // Transfer GPS data to struct
 
-    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle(); //vehicle.h/_coordinate
+    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()
+                                                              ->activeVehicle();
     plane.coord = _vehicle->coordinate();
 
-    //qDebug() << plane.coord.altitude() << "||" << plane.coord.latitude() << "||" << plane.coord.longitude();
+    if (UNITTEST)
+        qDebug() << plane.coord.altitude() << "||" << plane.coord.latitude()
+                                           << "||" << plane.coord.longitude();
 }
 
 void ShipLanding::update_posShip(QGeoPositionInfo update)
 {
-    /*
+   /*
     * Safe away the old GPS data to calculate heading later.
     */
     QGeoCoordinate old_ship_pos = ship.coord;
 
     // Transfer GPs data to struct
      ship.coord = update.coordinate();
-    // qDebug() << ship.coord.altitude() << "||" << ship.coord.latitude() << "||" << ship.coord.longitude();
+     if (UNITTEST)
+        qDebug() << ship.coord.altitude() << "||" << ship.coord.latitude()
+                                          << "||" << ship.coord.longitude();
 
-    /*
+   /*
     * Calculate heading.
     * Idea: Start heading with 0 degrees.
     * Afterwards, calculate a heading from old and new GPS.
