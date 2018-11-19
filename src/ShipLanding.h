@@ -11,6 +11,7 @@
 
 #include "QGCApplication.h"
 #include "PositionManager.h"
+#include "MissionManager/PlanManager.h"
 
 #include <QGeoCoordinate>
 #include "Vehicle.h"
@@ -64,6 +65,7 @@ public slots:
 private:
     static ShipLanding* _instance;              //!< Singleton instance of ShipLanding
     QTimer* timerLoiter = new QTimer(this);     //!< Timer to update loiter
+    QTimer* timerObserve = new QTimer(this);    //!< Timer to observe landing
     __GPS plane;                                //!< Information struct of plane
     __GPS ship;                                 //!< Information struct of ship
 
@@ -93,28 +95,40 @@ private:
      * \brief Stop the timer for loiter update.
      */
     void stop_timerLoiter();
+    /*!
+     * \brief Start the timer for landing observe.
+     */
+    void start_timerObserve();
+    /*!
+     * \brief Stop the timer for landing observe.
+     */
+    void stop_timerObserve();
 
 private slots:
     /*!
      * \brief Build and send the loiter message to the plane.
      */
-    void loiterShip();
+    void loiterSend();
     /*!
      * \brief Initiate the landing process.
      * Called after user starts the landing. Stops the timerLoiter.
      * Build and send landing mission to plane. Observe the ship movement.
      * Provides the cancel option for the user.
      */
-    void land();
+    void landSend();        //JGE, APF
+    /*!
+     * \brief Observe ship heading, ship position relative to wp2 (in front of ship). Send mission if needed.
+     */
+    void landObserve();     //JGE, APF
 
     /*!
      * \brief Called when the ship moved. Update the saved location and heading.
      */
-    void update_posPlane();	// SBR
+    void update_posPlane();
     /*!
      * \brief Called when the plane moved. Update the saved location and heading.
      */
-    void update_posShip(QGeoPositionInfo update);	// SBR
+    void update_posShip(QGeoPositionInfo update);
 
 signals:
     void confirmLanding();      //!< Signal to start landing process

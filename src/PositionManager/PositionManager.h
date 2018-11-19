@@ -48,10 +48,6 @@ private slots:
     void _positionUpdated(const QGeoPositionInfo &update);
     void _error(QGeoPositionInfoSource::Error positioningError);
 
-/*signals:
-    void lastPositionUpdated(bool valid, QVariant lastPosition);
-    void positionInfoUpdated(QGeoPositionInfo update);*/
-
 private:
     int _updateInterval;
     QGeoPositionInfoSource * _currentSource;
