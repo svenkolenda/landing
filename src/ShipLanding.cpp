@@ -78,14 +78,8 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent)
     // TODO: Connect GQCPositionManager to USB_GPS.
     connect(qgcApp()->toolbox()->qgcPositionManager(),
             &QGCPositionManager::positionInfoUpdated,
-            this,
-            &ShipLanding::update_posPlane);
+            this, &ShipLanding::update_posPlane);
 
-    // TODO: Position plane - nicht mehr notwendig
-    /* connect(qgcApp()->toolbox()->PositionManager(),
-            &PlanePositionManager::positionInfoUpdated,
-            this,
-            &ShipLanding::update_posPlane);*/
 
     // Initialize the timerLoiter
     timerLoiter->setSingleShot(false);
@@ -158,7 +152,7 @@ void ShipLanding::loiterShip()
 void ShipLanding::land()
 {
     //Get vehicle
-    Vehicle* vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
 
     // 2. WP: Loiter down to goal height
     QGeoCoordinate wp2 = calcPosRelativeToShip(WP2_DISTANCE, WP2_ALTITUDE);
@@ -185,15 +179,15 @@ void ShipLanding::land()
 void ShipLanding::update_posPlane()
 {
     // Transfer GPS data to struct
-    // TODO: QGCPositionManager => __GPS
 
     Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle(); //vehicle.h/_coordinate
     plane.coord = _vehicle->coordinate();
 
+    //qDebug() << plane.coord.altitude() << "||" << plane.coord.latitude() << "||" << plane.coord.longitude();
 
 }
 
-void ShipLanding::update_posShip()
+void ShipLanding::update_posShip(QGeoPositionInfo update)
 {
    /*
     * Safe away the old GPS data to calculate heading later.
@@ -202,17 +196,13 @@ void ShipLanding::update_posShip()
     */
     QGeoCoordinate old_ship_pos = ship.coord;
 
-    //@SBR: Start writing here.
+    //@SBR: Start
 
     // Transfer GPs data to struct
-    // TODO: QGCPositionManager => __GPS
+     ship.coord = update.coordinate();
+    // qDebug() << ship.coord.altitude() << "||" << ship.coord.latitude() << "||" << ship.coord.longitude();
 
-   //Z. 54 QGCToolbox.h - PositionManger.h - PositionManager.cc Z.63
-
-  //  QGCPositionManager* _qgcPositionManager = qgcApp()->toolbox()->qgcPositionManager()->positionInfoUpdated();
-  //  ship.coord = _qgcPositionManager->update();
-
-    //@SBR: Stop writing here.
+    //@SBR: Stop
 
    /*
     * Calculate heading.

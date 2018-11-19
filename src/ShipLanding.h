@@ -114,7 +114,7 @@ private slots:
     /*!
      * \brief Called when the plane moved. Update the saved location and heading.
      */
-    void update_posShip();	// SBR
+    void update_posShip(QGeoPositionInfo update);	// SBR
 
 signals:
     void confirmLanding();      //!< Signal to start landing process
