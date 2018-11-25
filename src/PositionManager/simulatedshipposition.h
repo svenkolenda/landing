@@ -34,19 +34,11 @@ private:
     QGeoPositionInfo lastPosition;
 
     // items for simulating QGC movement in jMAVSIM
-
     int32_t lat_int;
     int32_t lon_int;
 
-    struct simulated_motion_s {
-        int lon;
-        int lat;
-    };
-
-    int getRandomNumber(int size);
     int _step_cnt;
     int _simulate_motion_index;
-
     bool _simulate_motion;
     float _rotation;
 

@@ -6,17 +6,15 @@
 
 SimulatedShipPosition::SimulatedShipPosition()
     : QGeoPositionInfoSource(NULL),
-      lat_int(47.397042*1e7),          //gerade Zürich - Augsburg 48.354096
-      lon_int(8.544124*1e7),           //gerade Zürich - Augsburg 10.842208
+      lat_int(47.3978691*1e7),          //gerade Zürich - Augsburg 48.354096
+      lon_int(8.54495665*1e7),           //gerade Zürich - Augsburg 10.842208
       _step_cnt(0),
       _simulate_motion_index(0),
       _simulate_motion(true),
       _rotation(0.0F)
 {
     QDateTime currentDateTime = QDateTime::currentDateTime();
-
     qsrand(currentDateTime.toTime_t());
-
     connect(&update_timer, &QTimer::timeout, this, &SimulatedShipPosition::updatePosition);
 }
 
@@ -55,33 +53,15 @@ void SimulatedShipPosition::requestUpdate(int /*timeout*/)
     emit updateTimeout();
 }
 
-int SimulatedShipPosition::getRandomNumber(int size)
-{
-    if(size == 0) {
-        return 0;
-    }
-
-    int num = (qrand()%2 > 1) ? -1 : 1;
-
-    return num*qrand()%size;
-}
-
 void SimulatedShipPosition::updatePosition()
 {
-    int32_t lat_mov = 1;
-    int32_t lon_mov = 0;
+    int32_t lat_mov = 500; //Längengrad - größer Richtung Norden
+    int32_t lon_mov = 1000; //Breitengrad - größer Richtung Osten
 
-    //_rotation += (float) .1;
-    //lat_mov = _simulated_motion[_simulate_motion_index].lat;
-    //lon_mov = _simulated_motion[_simulate_motion_index].lon*sin(_rotation);
+    lat_int += lat_mov; // + oben / - unten
+    lon_int += lon_mov; // + rechts / - links
 
-    lon_int += lat_mov;
-    lat_int += lon_mov;
-
-    //double longitude = ((double) (lon_int + getRandomNumber(250)))*1e-7;
-    double longitude = ((double)  (lon_int))*1e-7;
-
-    //double latitude = ((double)  (lat_int + 0.0001))*1e-7;
+    double longitude = ((double) (lon_int))*1e-7;
     double latitude = ((double) (lat_int))*1e-7;
 
     QDateTime timestamp = QDateTime::currentDateTime();
