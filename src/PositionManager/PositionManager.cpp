@@ -32,7 +32,8 @@ void QGCPositionManager::setToolbox(QGCToolbox *toolbox)
 {
    QGCTool::setToolbox(toolbox);
    //-- First see if plugin provides a position source
-   _defaultSource = toolbox->corePlugin()->createPositionSource(this);
+  // _defaultSource = toolbox->corePlugin()->createPositionSource(this);
+   _defaultSource = new SimulatedShipPosition(); //Position Ship als Default!
    if(!_defaultSource) {
        //-- Otherwise, create a default one
        _defaultSource = QGeoPositionInfoSource::createDefaultSource(this);
@@ -41,9 +42,9 @@ void QGCPositionManager::setToolbox(QGCToolbox *toolbox)
    _simulatedSource = new SimulatedPosition();
 
    // Enable this to get a simulated target on desktop
-   // if (_defaultSource == nullptr) {
+   //if (_defaultSource == nullptr) {
    //     _defaultSource = _simulatedSource;
-   // }
+   //
 
    setPositionSource(QGCPositionSource::InternalGPS);
 }
@@ -91,7 +92,7 @@ void QGCPositionManager::setPositionSource(QGCPositionManager::QGCPositionSource
         _currentSource = _nmeaSource;
         break;
     case QGCPositionManager::InternalGPS:
-    default:        
+    default:    //SimulatedShipPosition
         _currentSource = _defaultSource;
         break;
     }

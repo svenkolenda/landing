@@ -16,6 +16,7 @@
 
 #include "QGCToolbox.h"
 #include "SimulatedPosition.h"
+#include "simulatedshipposition.h"
 
 class QGCPositionManager : public QGCTool {
     Q_OBJECT
@@ -54,4 +55,5 @@ private:
     QGeoPositionInfoSource * _defaultSource;
     QNmeaPositionInfoSource * _nmeaSource;
     QGeoPositionInfoSource * _simulatedSource;
+    QGeoPositionInfoSource * _simulatedShipPosition;
 };

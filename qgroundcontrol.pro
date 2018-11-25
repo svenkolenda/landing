@@ -394,7 +394,8 @@ HEADERS += \
     src/api/QGCSettings.h \
     src/api/QmlComponentInfo.h \
     src/comm/MavlinkMessagesTimer.h \
-    src/ShipLanding.h
+    src/ShipLanding.h \
+    src/PositionManager/simulatedshipposition.h
 
 SOURCES += \
     src/api/QGCCorePlugin.cc \
@@ -402,7 +403,8 @@ SOURCES += \
     src/api/QGCSettings.cc \
     src/api/QmlComponentInfo.cc \
     src/comm/MavlinkMessagesTimer.cc \
-    src/ShipLanding.cpp
+    src/ShipLanding.cpp \
+    src/PositionManager/simulatedshipposition.cpp
 
 #
 # Unit Test specific configuration goes here (requires full debug build with all plugins)
