@@ -55,10 +55,11 @@ void SimulatedShipPosition::requestUpdate(int /*timeout*/)
 
 void SimulatedShipPosition::updatePosition()
 {
-    int32_t lat_mov = 500; //Längengrad - größer Richtung Norden
-    int32_t lon_mov = 1000; //Breitengrad - größer Richtung Osten
+    //270 für 15 km/h einstellen, bzw mit Kurve variieren
+    int32_t lat_mov = 300; //Längengrad - größer Richtung Norden
+    int32_t lon_mov = 150; //Breitengrad - größer Richtung Osten
 
-    lat_int += lat_mov; // + oben / - unten
+    lat_int -= lat_mov; // + oben / - unten
     lon_int += lon_mov; // + rechts / - links
 
     double longitude = ((double) (lon_int))*1e-7;
@@ -75,7 +76,6 @@ void SimulatedShipPosition::updatePosition()
     }
 
     lastPosition = info;
-
     emit positionUpdated(info);
 }
 
