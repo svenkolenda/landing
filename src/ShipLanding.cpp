@@ -7,26 +7,25 @@ ShipLanding* ShipLanding::_instance = nullptr;
 /*-Local defines--------------------------------------------------------------*/
 const bool UNITTEST = false;
 
-// Distance in meter, Time in seconds
-const int MAX_DISTANCE = 200;      //!< Maximum distance plane to ship
-const int LOITER_DISTANCE = 150;   //!< Distance plane to ship for loiter point
-const int LOITER_ALTITUDE = 50;    //!< Altitude (absolute) of the loiter point
+// Distance and altitude in meter, Time in seconds
 const int LOITER_UPDATE = 30;      //!< Timer intervall to check loiter
-const int WP2_DISTANCE = 100;      //!< Distance plane to ship for wp2
-const int WP2_ALTITUDE = 25;       //!< Altitude (absolute) for wp2
-const int WP3_DISTANCE = 50;       //!< Distance plane to ship for wp3
-const int WP3_ALTITUDE = 5;        //!< Altitude (absolute) for wp3
-const int WP4_DISTANCE = -50;      //!< Distance plane to ship for wp4
-const int WP4_ALTITUDE = 5;        //!< Altitude (absolute) for wp4
+const int OBSERVE_UPDATE = 30;     //!< Timer intervall to observe landing
+
+const double MAX_DISTANCE = 200;      //!< Maximum distance plane to ship
+const double LOITER_DISTANCE = 150;   //!< Distance plane to ship for loiter point
+const unsigned int LOITER_ALTITUDE = 50;    //!< Altitude (absolute) of the loiter point
+const double NET_DISTANCE = 3/2;   //!< Distance ship position to end of net
+
 const double WP_ACCEPT_RADIUS = 5; //!< Acceptance radius for the waypoint
 const double WP_PASS_TROUGH = 0;   //!< plane pass through the waypoint
 const double WP_LOITER_TIME = 0;   //!< Hold time at the waypoint
-const int WP_SEQ_NR = 13;          //!< Sequence number
-const int OBSERVE_UPDATE = 30;     //!< Timer intervall to observe landing
+
+const QList<double> WPLIST_DIST({100, 50, -50});   //!< Distance plane to ship
+const QList<unsigned int> WPLIST_ALT({25, 5, 5});    //!< Altitude (absolute)
 
 const double HEADING_WEIGHT = 0.1; //!< heading weight
-const unsigned int GAP_LATITUDE = 111300;
-const double DEGREE_TO_RAD = M_PI / 180;
+const unsigned int GAP_LATITUDE = 111300;   //!< gap between circles of latitude
+const double DEGREE_TO_RAD = M_PI / 180;    //!< conversion degree to radian
 
 /*
  * The following are necessary because the heading doesn't work like angles in
@@ -62,28 +61,30 @@ void ShipLanding::release()
 
 void ShipLanding::initDialog()
 {
-    qDebug() << "Confirmed Landing";
-    stop_timerLoiter();                 // stop timer to loiter
+    if (UNITTEST)
+        qDebug() << "Confirmed Landing";
+    //stop_timerLoiter();                 // stop timer to loiter
     start_timerObserve();               // start timer to observe landing
     landObserve();
 }
 
 void ShipLanding::cancelDialog()
 {
-    qDebug() << "Confirmed Cancel";
+    if (UNITTEST)
+        qDebug() << "Confirmed Cancel";
     stop_timerObserve();                // stop timer to observe landing
-    start_timerLoiter();                // start timer to loiter
-    loiterSend();
+    //start_timerLoiter();                // start timer to loiter
+    //loiterSend();
 }
 
 /*-Private functions----------------------------------------------------------*/
 
 ShipLanding::ShipLanding(QObject *parent) : QObject(parent)
 {
-    // TODO: Connect GQCPositionManager to USB_GPS.
+    // Connect GQCPositionManager to USB_GPS.
     connect(qgcApp()->toolbox()->qgcPositionManager(),
             &QGCPositionManager::positionInfoUpdated,
-            this, &ShipLanding::update_posPlane);
+            this, &ShipLanding::update_posShip);
 
 
     // Initialize the timerLoiter
@@ -94,6 +95,7 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent)
     connect(timerObserve, &QTimer::timeout, this, &ShipLanding::landObserve);
 
     // TODO: Connect prepare to land to end of mission
+    start_timerLoiter();
 }
 
 ShipLanding::~ShipLanding()
@@ -101,9 +103,9 @@ ShipLanding::~ShipLanding()
 }
 
 QGeoCoordinate ShipLanding::calcPosRelativeToShip
-(int distance, unsigned int altitude)
+(double distance, unsigned int altitude, double dDir=0)
 {
-    if (UNITTEST)
+    if (false)  // or UNITTEST
     {
         ship.dir = 225;
         ship.coord.setAltitude(500);
@@ -114,8 +116,8 @@ QGeoCoordinate ShipLanding::calcPosRelativeToShip
     QGeoCoordinate pos;
     double dx = 0, dy = 0;
 
-    dx = sin(ship.dir * DEGREE_TO_RAD) * distance;
-    dy = cos(ship.dir * DEGREE_TO_RAD) * distance;
+    dx = sin((ship.dir+dDir) * DEGREE_TO_RAD) * distance;
+    dy = cos((ship.dir+dDir) * DEGREE_TO_RAD) * distance;
 
     pos.setLatitude(ship.coord.latitude() - dy / GAP_LATITUDE);
     pos.setLongitude(ship.coord.longitude() - dx / GAP_LATITUDE *
@@ -123,8 +125,7 @@ QGeoCoordinate ShipLanding::calcPosRelativeToShip
     pos.setAltitude(altitude);
 
     if (UNITTEST)
-        qDebug() << "Longitude: " << pos.longitude()
-                 << " | Latitude: " << pos.latitude()
+        qDebug() << "pos: " << pos << " | dir: " << ship.dir+dDir
                  << " | dx: " << dx << " | dy: " << dy
                  << " | distanceTo ship: " << ship.coord.distanceTo(pos);
     return pos;
@@ -154,8 +155,6 @@ void ShipLanding::stop_timerObserve()
 
 void ShipLanding::loiterSend()
 {
-    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()
-                                                              ->activeVehicle();
     // Check distance plane - ship too far
     if (ship.coord.distanceTo(_vehicle->coordinate()) > MAX_DISTANCE)
     {
@@ -168,23 +167,29 @@ void ShipLanding::loiterSend()
 
 void ShipLanding::landSend()
 {
-    //Get vehicle
-    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()
-                                                              ->activeVehicle();
-
     QList<QGeoCoordinate> wp;
-    // WP0: Down to altitude
-    wp.push_back(calcPosRelativeToShip(WP2_DISTANCE, WP2_ALTITUDE));
-    // WP1: Behind ship in front of the net
-    wp.push_back(calcPosRelativeToShip(WP3_DISTANCE, WP3_ALTITUDE));
-    // WP2: In front of the ship
-    wp.push_back(calcPosRelativeToShip(WP4_DISTANCE, WP4_ALTITUDE));
+    for (int i=0; i<WPLIST_DIST.count(); i++) {
+        wp.push_back(calcPosRelativeToShip(WPLIST_DIST.at(i), WPLIST_ALT.at(i)));
+    }
+    if (UNITTEST)
+        qDebug() << wp;
+
+    // Bei Uebertritt Geofence -> ReturnMode (Parameter GF_ACTION auf 3 setzen PX4MockLink.params, V1.4.OfflineEditing.params)
+    QmlObjectListModel polygons, circles;
+    QGCFencePolygon polygon = new QGCFencePolygon(true);
+    QGeoCoordinate breach = wp.back();
+    polygon.appendVertex(calcPosRelativeToShip(NET_DISTANCE, WPLIST_ALT.at(0), 180));
+    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE, LOITER_ALTITUDE, 15));
+    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE, LOITER_ALTITUDE, -15));
+    polygon.appendVertex(calcPosRelativeToShip(-NET_DISTANCE, WPLIST_ALT.at(0), -180));
+    polygons.insert(0, &polygon);
+    //_vehicle->geoFenceManager()->sendToVehicle(breach, polygons, circles);
 
     // Convert Waypoints into MissionItems
     QList<MissionItem*> landingItems;
     for (int i=0; i<wp.count(); i++) {
         landingItems.push_back
-            (new MissionItem(WP_SEQ_NR,               // sequence number
+            (new MissionItem(i+1,     // sequence number
              MAV_CMD_NAV_WAYPOINT,    // command
              MAV_FRAME_GLOBAL,        // frame
              WP_LOITER_TIME,          // param1 hold time
@@ -197,13 +202,8 @@ void ShipLanding::landSend()
              true,                    // autoContinue
              i==0));                  // is current Item
     }
-    //vehicle->missionManager()->writeMissionItem(landingItems);
-
-    // Bei Übertritt Geofence -> ReturnMode (Parameter GF_ACTION auf 3 setzen PX4MockLink.params, V1.4.OfflineEditing.params)
-    //QList<MissionItem*> fenceItems;
-    //QmlObjectListModel polygons, circles;
-    //TODO: Create polygons VS. Create MissionItem s.a. GeofenceManager
-    //vehicle->geoFenceManager()->sendToVehicle(wp.at(0), polygons, circles);
+    _vehicle->missionManager()->writeMissionItems(landingItems);
+    //_vehicle->startMission();
 }
 
 void ShipLanding::landObserve()
@@ -218,19 +218,6 @@ void ShipLanding::landObserve()
     landSend();
 }
 
-void ShipLanding::update_posPlane()
-{
-    // Transfer GPS data to struct
-
-    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()
-                                                              ->activeVehicle();
-    plane.coord = _vehicle->coordinate();
-
-    if (UNITTEST)
-        qDebug() << plane.coord.altitude() << "||" << plane.coord.latitude()
-                                           << "||" << plane.coord.longitude();
-}
-
 void ShipLanding::update_posShip(QGeoPositionInfo update)
 {
    /*
@@ -241,8 +228,7 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
     // Transfer GPs data to struct
      ship.coord = update.coordinate();
      if (UNITTEST)
-        qDebug() << ship.coord.altitude() << "||" << ship.coord.latitude()
-                                          << "||" << ship.coord.longitude();
+        qDebug() << "Ship: " << ship.coord;
 
    /*
     * Calculate heading.
@@ -290,5 +276,7 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
             new_dir = WEST - alpha;
     }
 
-    ship.dir = ship.dir + (HEADING_WEIGHT * (new_dir - ship.dir));
+    //ship.dir = ship.dir + (HEADING_WEIGHT * (new_dir - ship.dir));
+    if (UNITTEST)
+       qDebug() << "Ship: " << ship.dir;
 }

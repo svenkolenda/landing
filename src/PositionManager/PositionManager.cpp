@@ -32,7 +32,7 @@ void QGCPositionManager::setToolbox(QGCToolbox *toolbox)
 {
    QGCTool::setToolbox(toolbox);
    //-- First see if plugin provides a position source
-  // _defaultSource = toolbox->corePlugin()->createPositionSource(this);
+   //_defaultSource = toolbox->corePlugin()->createPositionSource(this);
    _defaultSource = new SimulatedShipPosition(); //Position Ship als Default!
    if(!_defaultSource) {
        //-- Otherwise, create a default one

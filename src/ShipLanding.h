@@ -4,19 +4,18 @@
 /*-Includes-------------------------------------------------------------------*/
 
 #include <stdint.h>
+#include <math.h>
 
 #include <QObject>
-#include <QMessageBox>
 #include <QTimer>
+#include <QGeoCoordinate>
 
 #include "QGCApplication.h"
 #include "PositionManager.h"
-#include "MissionManager/PlanManager.h"
-
-#include <QGeoCoordinate>
+#include "MissionManager.h"
+#include "QmlObjectListModel.h"
+#include "QGCFencePolygon.h"
 #include "Vehicle.h"
-
-#include <math.h>
 
 /*-Local defines--------------------------------------------------------------*/
 
@@ -64,6 +63,7 @@ public slots:
 
 private:
     static ShipLanding* _instance;              //!< Singleton instance of ShipLanding
+    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
     QTimer* timerLoiter = new QTimer(this);     //!< Timer to update loiter
     QTimer* timerObserve = new QTimer(this);    //!< Timer to observe landing
     __GPS plane;                                //!< Information struct of plane
@@ -85,7 +85,7 @@ private:
      * \param alltitude planned absolute alltitude
      * \return
      */
-    QGeoCoordinate calcPosRelativeToShip(int, unsigned int);
+    QGeoCoordinate calcPosRelativeToShip(double, unsigned int, double);
 
     /*!
      * \brief Start the timer for loiter update.
@@ -115,16 +115,12 @@ private slots:
      * Build and send landing mission to plane. Observe the ship movement.
      * Provides the cancel option for the user.
      */
-    void landSend();        //JGE, APF
+    void landSend();
     /*!
      * \brief Observe ship heading, ship position relative to wp2 (in front of ship). Send mission if needed.
      */
-    void landObserve();     //JGE, APF
+    void landObserve();     //APF
 
-    /*!
-     * \brief Called when the ship moved. Update the saved location and heading.
-     */
-    void update_posPlane();
     /*!
      * \brief Called when the plane moved. Update the saved location and heading.
      */
