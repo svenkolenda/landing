@@ -160,20 +160,35 @@ void ShipLanding::loiterSend()
     {
         // Send the plane distance behind the ship
         if(_vehicle)
-            _vehicle->guidedModeGotoLocation
-                      (calcPosRelativeToShip(LOITER_DISTANCE, LOITER_ALTITUDE));
-    }
+        {
+            qDebug() << "INDEX" << _vehicle->missionManager()->currentIndex() << "LASTINDEX" << _vehicle->missionManager()->lastCurrentIndex();
+            if(_vehicle->missionManager()->currentIndex() == _vehicle->missionManager()->lastCurrentIndex())
+            {
+                qDebug() << "GOTO";
+                _vehicle->guidedModeGotoLocation(calcPosRelativeToShip(LOITER_DISTANCE, LOITER_ALTITUDE));
+            }
+            else if(_vehicle->missionManager()->currentIndex() > 0)
+            {
+                qDebug() << "SETHOME";
+                QGeoCoordinate newHome = calcPosRelativeToShip(LOITER_DISTANCE, LOITER_ALTITUDE);
+                _vehicle->sendMavCommand(_vehicle->defaultComponentId(), MAV_CMD_DO_SET_HOME, true, 0, 0, 0, 0, newHome.latitude(), newHome.longitude(), newHome.altitude());
+            }
+        }
+     }
 }
 
 void ShipLanding::landSend()
 {
     QList<QGeoCoordinate> wp;
-    for (int i=0; i<WPLIST_DIST.count(); i++) {
+    for (int i=0; i<WPLIST_DIST.count(); i++)
+    {
         wp.push_back(calcPosRelativeToShip(WPLIST_DIST.at(i), WPLIST_ALT.at(i)));
     }
     if (UNITTEST)
+    {
         qDebug() << wp;
-
+        return;
+    }
     // Bei Uebertritt Geofence -> ReturnMode (Parameter GF_ACTION auf 3 setzen PX4MockLink.params, V1.4.OfflineEditing.params)
     QmlObjectListModel polygons, circles;
     QGCFencePolygon polygon = new QGCFencePolygon(true);
@@ -187,7 +202,8 @@ void ShipLanding::landSend()
 
     // Convert Waypoints into MissionItems
     QList<MissionItem*> landingItems;
-    for (int i=0; i<wp.count(); i++) {
+    for (int i=0; i<wp.count(); i++)
+    {
         landingItems.push_back
             (new MissionItem(i+1,     // sequence number
              MAV_CMD_NAV_WAYPOINT,    // command

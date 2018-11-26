@@ -77,6 +77,7 @@ void SimulatedShipPosition::updatePosition()
 
     lastPosition = info;
     emit positionUpdated(info);
+
 }
 
 QGeoPositionInfoSource::Error SimulatedShipPosition::error() const
