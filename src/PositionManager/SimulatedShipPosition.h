@@ -1,10 +1,17 @@
 //Simulation Schiff Position
 
-#pragma once
+#ifndef SIMULATED_SHIP_POSITION_H
+#define SIMULATED_SHIP_POSITION_H
 
 #include <QtPositioning/qgeopositioninfosource.h>
-#include "QGCToolbox.h"
 #include <QTimer>
+#include <QDate>
+#include <QtCore>
+#include <QDateTime>
+#include "QGCToolbox.h"
+
+// SeaWatch3: avg: 7knots, max 8.1knots
+const int LAT_LON_MOV = 500; //!< max movement
 
 class SimulatedShipPosition : public QGeoPositionInfoSource
 {
@@ -30,12 +37,10 @@ private slots:
 
 private:
     QTimer update_timer;
-
     QGeoPositionInfo lastPosition;
 
-    // items for simulating QGC movement in jMAVSIM
-    int32_t lat_int;
-    int32_t lon_int;
+    int lat_int;
+    int lon_int;
 
     int _step_cnt;
     int _simulate_motion_index;
@@ -44,3 +49,4 @@ private:
 
 };
 
+#endif

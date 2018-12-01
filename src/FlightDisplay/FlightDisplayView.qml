@@ -509,10 +509,10 @@ QGCView {
             z:                  _panel.z + 4
             title:              qsTr("Fly")
             maxHeight:          (_flightVideo.visible ? _flightVideo.y : parent.height) - toolStrip.y
-            buttonVisible:      [ _useChecklist, _guidedController.showTakeoff || !_guidedController.showLand, _guidedController.showLand && !_guidedController.showTakeoff, true, true, true ]
-            buttonEnabled:      [ _useChecklist && _activeVehicle, _guidedController.showTakeoff, _guidedController.showLand, _guidedController.showRTL, _guidedController.showPause, _anyActionAvailable ]
+            buttonVisible:      [ _useChecklist, _guidedController.showTakeoff || !_guidedController.showLand, _guidedController.showLand && !_guidedController.showTakeoff, true, true, true, true ]
+            buttonEnabled:      [ _useChecklist && _activeVehicle, _guidedController.showTakeoff, _guidedController.showLand, _guidedController.showRTL, _guidedController.showStartRTS, _guidedController.showPause, _anyActionAvailable ]
 
-            property bool _anyActionAvailable: _guidedController.showStartMission || _guidedController.showResumeMission || _guidedController.showChangeAlt || _guidedController.showLandAbort || _guidedController.showRTS
+            property bool _anyActionAvailable: _guidedController.showStartMission || _guidedController.showResumeMission || _guidedController.showChangeAlt || _guidedController.showLandAbort || _guidedController.showStartRTS
             property var _actionModel: [
                 {
                     title:      _guidedController.startMissionTitle,
@@ -545,10 +545,10 @@ QGCView {
                     visible:    _guidedController.showLandAbort
                 },
                 {
-                    title:      _guidedController.rtsTitle,
-                    text:       _guidedController.rtsMessage,
-                    action:     _guidedController.actionRTS,
-                    visible:    _guidedController.showRTS
+                    title:      _guidedController.startrtsTitle,
+                    text:       _guidedController.startrtsMessage,
+                    action:     _guidedController.actionStartRTS,
+                    visible:    _guidedController.showStartRTS
                 }
             ]
 
@@ -574,9 +574,9 @@ QGCView {
                     action:     _guidedController.actionRTL
                 },
                 {
-                    name:       _guidedController.rtsTitle,
-                    iconSource: "/res/rts.svg",
-                    action:     _guidedController.actionRTS
+                    name:       _guidedController.startrtsTitle,
+                    iconSource: "/res/startrts.svg",
+                    action:     _guidedController.actionStartRTS
                 },
                 {
                     name:       _guidedController.pauseTitle,

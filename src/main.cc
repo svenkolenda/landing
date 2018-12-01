@@ -207,9 +207,6 @@ int main(int argc, char *argv[])
 #endif
 #endif // QT_DEBUG
 
-    // Register ShipLanding class to QML
-    qmlRegisterSingletonType<ShipLanding>("Qt.example.foo", 1, 0, "ShipLanding", &ShipLanding::qmlInstance);
-
     QGCApplication* app = new QGCApplication(argc, argv, runUnitTests);
     Q_CHECK_PTR(app);
 
@@ -229,6 +226,9 @@ int main(int argc, char *argv[])
     getQGCMapEngine()->init();
 
     int exitCode = 0;
+
+    // Register ShipLanding class to QML
+    qmlRegisterSingletonType<ShipLanding>("Qt.example.foo", 1, 0, "ShipLanding", &ShipLanding::qmlInstance);
 
 #ifdef UNITTEST_BUILD
     if (runUnitTests) {

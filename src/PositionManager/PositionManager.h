@@ -16,7 +16,7 @@
 
 #include "QGCToolbox.h"
 #include "SimulatedPosition.h"
-#include "simulatedshipposition.h"
+#include "SimulatedShipPosition.h"
 
 class QGCPositionManager : public QGCTool {
     Q_OBJECT

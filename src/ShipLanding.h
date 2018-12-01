@@ -11,13 +11,16 @@
 #include <QGeoCoordinate>
 
 #include "QGCApplication.h"
+#include "QGCLoggingCategory.h"
 #include "PositionManager.h"
+#include "Vehicle.h"
 #include "MissionManager.h"
 #include "QmlObjectListModel.h"
 #include "QGCFencePolygon.h"
-#include "Vehicle.h"
 
 /*-Local defines--------------------------------------------------------------*/
+
+Q_DECLARE_LOGGING_CATEGORY(ShipLandingLog)
 
 /**
  * @brief Struct to save the coordinates and the direction of plane/ship
@@ -30,6 +33,9 @@ struct __GPS
 };
 
 /*-ShipLanding-----------------------------------------------------------------*/
+// Timer interval in seconds
+const int TMR_INTVL_LOITER = 120;  //!< Timer intervall to check loiter
+const int TMR_INTVL_OBS = 60;      //!< Timer intervall to observe landing
 
 /*!
  * \brief The ShipLanding class
@@ -38,12 +44,19 @@ class ShipLanding : public QObject
 {
     Q_OBJECT
 
-public:
+private:    // attributes
+    static ShipLanding* _instance;              //!< Singleton instance of ShipLanding
+    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+    QTimer* timerLoiter = new QTimer(this);     //!< Timer to update loiter
+    QTimer* timerObserve = new QTimer(this);    //!< Timer to observe landing
+    __GPS ship;                                 //!< Information struct of ship
+
+public:     // functions
     /*!
      * \brief Returns the instance for the QML-Integration.
      * \param engine QQmlEnging to connect Q_INVOKABLE to QML
      * \param scriptEngine QJEnginge to parse to JSON
-     * \return
+     * \return _instance of ShipLanding
      */
     static QObject* qmlInstance(QQmlEngine *engine, QJSEngine *scriptEngine);
     /*!
@@ -51,33 +64,22 @@ public:
      */
     static void release();
 
-public slots:
-    /*!
-     * \brief Reaction to init the landing.
-     */
-    Q_INVOKABLE void initDialog();
-    /*!
-     * \brief Reaction to cancel the Landing.
-     */
-    Q_INVOKABLE void cancelDialog();
-
-private:
-    static ShipLanding* _instance;              //!< Singleton instance of ShipLanding
-    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-    QTimer* timerLoiter = new QTimer(this);     //!< Timer to update loiter
-    QTimer* timerObserve = new QTimer(this);    //!< Timer to observe landing
-    __GPS plane;                                //!< Information struct of plane
-    __GPS ship;                                 //!< Information struct of ship
-
+private:    // functions
     /*!
      * \brief Connect landing and cancel, connect PositionManger ship and plane, configure the timerLoiter.
      * \param parent QObject parent from the ShipLanding object
      */
-    explicit ShipLanding(QObject *parent = nullptr);
+    ShipLanding(QObject *parent = nullptr);
     /*!
      * \brief Private Destructor.
      */
     ~ShipLanding();
+
+    // Start and stop-functions for the timer
+    void start_timerLoiter() {timerLoiter->start(TMR_INTVL_LOITER * 1000);}
+    void stop_timerLoiter() {timerLoiter->stop();}
+    void start_timerObserve() {timerObserve->start(TMR_INTVL_OBS * 1000);}
+    void stop_timerObserve() {timerLoiter->stop();}
 
     /*!
      * \brief Calculate the position distance away from ship resting upon the heading.
@@ -87,22 +89,15 @@ private:
      */
     QGeoCoordinate calcPosRelativeToShip(double, unsigned int, double);
 
+public slots:
     /*!
-     * \brief Start the timer for loiter update.
+     * \brief Reaction to init the landing. Called by UI.
      */
-    void start_timerLoiter();
+    Q_INVOKABLE void landingStart();
     /*!
-     * \brief Stop the timer for loiter update.
+     * \brief Reaction to cancel the Landing. Called by UI.
      */
-    void stop_timerLoiter();
-    /*!
-     * \brief Start the timer for landing observe.
-     */
-    void start_timerObserve();
-    /*!
-     * \brief Stop the timer for landing observe.
-     */
-    void stop_timerObserve();
+    Q_INVOKABLE void landingCancel();
 
 private slots:
     /*!
@@ -127,8 +122,8 @@ private slots:
     void update_posShip(QGeoPositionInfo update);
 
 signals:
-    void confirmLanding();      //!< Signal to start landing process
-    void confirmCancel();       //!< Signal to cancel landing proces and start loiter
+    void confirmLandingStart();      //!< Signal to start landing process
+    void confirmLandingCancel();     //!< Signal to cancel landing proces and start loiter
 };
 
 #endif // ShipLANDING_H

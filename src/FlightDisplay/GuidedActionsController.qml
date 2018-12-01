@@ -53,8 +53,8 @@ Item {
     readonly property string setWaypointTitle:              qsTr("Set Waypoint")
     readonly property string gotoTitle:                     qsTr("Goto Location")
     readonly property string vtolTransitionTitle:           qsTr("VTOL Transition")
-    readonly property string rtsTitle:          qsTr("RtS")
-    readonly property string cancelrtsTitle:          qsTr("Cancel RtS")
+    readonly property string startrtsTitle:                 qsTr("Start RtS")
+    readonly property string cancelrtsTitle:                qsTr("Cancel RtS")
 
     readonly property string armMessage:                        qsTr("Arm the vehicle.")
     readonly property string disarmMessage:                     qsTr("Disarm the vehicle")
@@ -76,8 +76,8 @@ Item {
     readonly property string mvPauseMessage:                    qsTr("Pause all vehicles at their current position.")
     readonly property string vtolTransitionFwdMessage:          qsTr("Transition VTOL to fixed wing flight.")
     readonly property string vtolTransitionMRMessage:           qsTr("Transition VTOL to multi-rotor flight.")
-    readonly property string rtsMessage:                        qsTr("Stop loiter and start the approach.")
-    readonly property string cancelrtsMessage:                  qsTr("Stop landing and start loitering.")
+    readonly property string startrtsMessage:                   qsTr("Start the approach.")
+    readonly property string cancelrtsMessage:                  qsTr("Stop landing and return to loiter.")
 
     readonly property int actionRTL:                        1
     readonly property int actionLand:                       2
@@ -100,7 +100,7 @@ Item {
     readonly property int actionMVStartMission:             19
     readonly property int actionVtolTransitionToFwdFlight:  20
     readonly property int actionVtolTransitionToMRFlight:   21
-    readonly property int actionRTS:                        22
+    readonly property int actionStartRTS:                   22
     readonly property int actionCancelRTS:                  23
 
 
@@ -117,7 +117,7 @@ Item {
     property bool showOrbit:            _guidedActionsEnabled && !_hideOrbit && _vehicleFlying && _activeVehicle.orbitModeSupported && !_missionActive
     property bool showLandAbort:        _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing && _vehicleLanding
     property bool showGotoLocation:     _guidedActionsEnabled && _vehicleFlying
-    property bool showRTS:              _guidedActionsEnabled && _vehicleFlying
+    property bool showStartRTS:         _guidedActionsEnabled && _vehicleFlying
     property bool showCancelRTS:        _guidedActionsEnabled && _vehicleFlying
 
     // Note: The '_missionItemCount - 2' is a hack to not trigger resume mission when a mission ends with an RTL item
@@ -345,9 +345,9 @@ Item {
             confirmDialog.message = vtolTransitionMRMessage
             confirmDialog.hideTrigger = true
             break
-        case actionRTS :
-            confirmDialog.title = rtsTitle
-            confirmDialog.message = rtsMessage
+        case actionStartRTS :
+            confirmDialog.title = startrtsTitle
+            confirmDialog.message = startrtsMessage
             confirmDialog.hideTrigger = true
             break;
         case actionCancelRTS :
@@ -387,6 +387,7 @@ Item {
         case actionStartMission:
         case actionContinueMission:
             _activeVehicle.startMission()
+            ShipLanding.landingCancel();
             break
         case actionMVStartMission:
             rgVehicle = QGroundControl.multiVehicleManager.vehicles
@@ -435,11 +436,11 @@ Item {
         case actionVtolTransitionToMRFlight:
             _activeVehicle.vtolInFwdFlight = false
             break
-        case actionRTS:
-            ShipLanding.initDialog()
+        case actionStartRTS:
+            ShipLanding.landingStart()
             break
         case actionCancelRTS:
-            ShipLanding.cancelDialog()
+            ShipLanding.landingCancel()
             break
         default:
             console.warn(qsTr("Internal error: unknown actionCode"), actionCode)
