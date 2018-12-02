@@ -13,7 +13,7 @@ const double NET_DISTANCE = 3/2;    //!< Distance ship position to end of net
 
 // WP-List 0: Loiter, 1: DownToAltitude, 2: WP behind ship, 3: WP in front of ship
 const QList<double> WPLIST_DIST({750, 500, 250, -250});         //!< Distance plane to ship
-const QList<unsigned int> WPLIST_ALT({50, 15, 5, 5});           //!< Altitude (absolute)
+const QList<unsigned int> WPLIST_ALT({500, 15, 5, 5});           //!< Altitude (absolute)
 const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1});    //!< Acceptance radius for the waypoint
 
 // Calculation parameters for distance vs coordinates
@@ -88,7 +88,7 @@ QGeoCoordinate ShipLanding::calcPosRelativeToShip
                      cos(ship.coord.latitude() * DEGREE_TO_RAD));
     pos.setAltitude(altitude);
 
-    qCDebug(ShipLandingLog) << "pos: " << pos << " | dir: " << ship.dir+dDir
+    qDebug() << "pos: " << pos << " | dir: " << ship.dir+dDir
                  << " | dx: " << dx << " | dy: " << dy
                  << " | distanceTo ship: " << ship.coord.distanceTo(pos);
     return pos;
@@ -121,9 +121,8 @@ void ShipLanding::loiterSend()
         // Send the plane to the loiter waypoint behind the ship
         if(_vehicle)
         {
-            qCDebug(ShipLandingLog) << "INDEX" << _vehicle->missionManager()->currentIndex()
-                     << "LASTINDEX" << _vehicle->missionManager()->lastCurrentIndex();
-            if(_vehicle->missionManager()->currentIndex() == _vehicle->missionManager()->lastCurrentIndex())
+            qCDebug(ShipLandingLog) << "MISSION_ITEM_COUNT:" << _vehicle->missionManager()->PlanManager::missionItems().count();
+            if(_vehicle->missionManager()->currentIndex() >= _vehicle->missionManager()->PlanManager::missionItems().count())
             {
                 qCDebug(ShipLandingLog) << "GOTO";
                 _vehicle->guidedModeGotoLocation(calcPosRelativeToShip(WPLIST_DIST.at(0), WPLIST_ALT.at(0)));
