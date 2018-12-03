@@ -2,8 +2,8 @@
 
 SimulatedShipPosition::SimulatedShipPosition()
     : QGeoPositionInfoSource(nullptr),
-      lat_int(47.365464*1e7),          // Zuerich See 47.365464 // Augsburg HS 48.354772 // Malta/Lybien 34.416907
-      lon_int(8.542199*1e7),           // Zuerich See 8.542199 // Augsburg HS 10.904693 // NMalte/Lybien 14.097748
+      lat_int(37.0*1e7),          // Zuerich See 47.365464 // Augsburg HS 48.354772 // Malta/Lybien 34.416907
+      lon_int(12.0*1e7),           // Zuerich See 8.542199 // Augsburg HS 10.904693 // NMalte/Lybien 14.097748
       _step_cnt(0),
       _simulate_motion_index(0),
       _simulate_motion(true),

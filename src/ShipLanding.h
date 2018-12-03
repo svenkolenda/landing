@@ -34,8 +34,8 @@ struct __GPS
 
 //-ShipLanding---------------------------------------------------------------//
 // Timer interval in seconds
-const int TMR_INTVL_LOITER = 120;  //!< Timer intervall to check loiter
-const int TMR_INTVL_OBS = 60;      //!< Timer intervall to observe landing
+const int TMR_INTVL_LOITER = 30;  //!< Timer intervall to check loiter
+const int TMR_INTVL_OBS = 30;      //!< Timer intervall to observe landing
 
 /*!
  * \brief The ShipLanding class

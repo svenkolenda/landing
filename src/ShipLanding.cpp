@@ -8,15 +8,15 @@ QGC_LOGGING_CATEGORY(ShipLandingLog, "ShipLandingLog")
 
 //-Local defines-------------------------------------------------------------//
 // Distance in meter
-const double MAX_DISTANCE = 1000;       //!< Maximum distance plane to ship
+const double MAX_DISTANCE = 500;       //!< Maximum distance plane to ship
 const double NET_DISTANCE = 3/2;        //!< Distance ship position to end of net
 
 // WP-List 0: Loiter, 1: DownToAlt, 2: WP behind ship, 3: WP in front of ship
-const QList<double> WPLIST_DIST({750, 500, 250, -250});         //!< Distance plane to ship
-const QList<unsigned int> WPLIST_ALT({500, 15, 5, 5});          //!< Altitude (absolute)
+const QList<double> WPLIST_DIST({350, 250, 100, -100});         //!< Distance plane to ship
+const QList<unsigned int> WPLIST_ALT({50, 15, 5, 5});           //!< Altitude (relative)
 const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1});    //!< Acceptance radius for the waypoint
 const double FALLBACK_DIST = -100;      //!< Distance plane to ship
-const unsigned int FALLBACK_ALT = 200;  //!< Altitude (absolut)
+const unsigned int FALLBACK_ALT = 200;  //!< Altitude (relative)
 const int FALLBACK_HDG = 45;            //!< Heading relative to ship
 
 // Calculation parameters for distance vs coordinates
@@ -76,7 +76,6 @@ ShipLanding::ShipLanding(QObject *parent) : QObject(parent)
     connect(timerObserve, &QTimer::timeout, this, &ShipLanding::landObserve);
 
     // TODO: Connect prepare to land to end of mission
-    start_timerLoiter();
 
     // Set landObserve no landing
     landing = false;
@@ -110,10 +109,12 @@ void ShipLanding::sendBehindShip()
     qCDebug(ShipLandingLog) << "sendBehindShip: Send the loiter message.";
     if(_vehicle)
     {
-        qCDebug(ShipLandingLog) << "MISSION_ITEM_COUNT:" << _vehicle->
-                          missionManager()->PlanManager::missionItems().count();
-        if(_vehicle->missionManager()->currentIndex() >= _vehicle->
-                          missionManager()->PlanManager::missionItems().count())
+        qCDebug(ShipLandingLog) << "MISSION_ITEM_COUNT:"
+                                << _vehicle->missionManager()->PlanManager::missionItems().count()
+                                << "CURRENT_INDX:"
+                                << _vehicle->missionManager()->currentIndex();
+        if(_vehicle->missionManager()->currentIndex() >=
+           _vehicle->missionManager()->PlanManager::missionItems().count() - 1)
         {
             qCDebug(ShipLandingLog) << "GOTO";
             _vehicle->guidedModeGotoLocation(calcPosRelativeToShip(
@@ -126,7 +127,8 @@ void ShipLanding::sendBehindShip()
                                            WPLIST_DIST.at(0), WPLIST_ALT.at(0));
             _vehicle->sendMavCommand(_vehicle->defaultComponentId(),
                                     MAV_CMD_DO_SET_HOME, true,
-                                    0, 0, 0, 0,        // unused param 1-4
+                                    0,              // specified location
+                                    0, 0, 0,        // unused param 2-4
                                     static_cast<float>(newHome.latitude()),
                                     static_cast<float>(newHome.longitude()),
                                     static_cast<float>(newHome.altitude()));
@@ -170,6 +172,7 @@ void ShipLanding::landingCancel()
 {
     qCDebug(ShipLandingLog) << "landingCancel: Confirmed Cancel";
     stop_timerObserve();                // stop timer to observe landing
+    start_timerLoiter();
 }
 
 
@@ -194,16 +197,16 @@ void ShipLanding::landSend()
     {
         wp.push_back(calcPosRelativeToShip(WPLIST_DIST.at(i), WPLIST_ALT.at(i)));
     }
-    qCDebug(ShipLandingLog) << wp;
+    qCDebug(ShipLandingLog) << "landSend: WP-ist=" << wp;
 
     // Convert Waypoints into MissionItems
     QList<MissionItem*> landingItems;
     for (int i=1; i<wp.count(); i++)
     {
         landingItems.push_back
-            (new MissionItem(i+1,       // sequence number
+            (new MissionItem(i,       // sequence number
              MAV_CMD_NAV_WAYPOINT,      // command
-             MAV_FRAME_GLOBAL,          // frame
+             MAV_FRAME_GLOBAL_RELATIVE_ALT,          // frame
              0,                         // param1 hold time
              WPLIST_ACCEPT_RAD.at(i),   // param2 acceptance radius
              0,                         // param3 pass trough
@@ -213,8 +216,8 @@ void ShipLanding::landSend()
              wp.at(i).altitude(),       // param7 altitude
              true,                      // autoContinue
              i==1));                    // is current Item
+        qCDebug(ShipLandingLog) << "landSend: " << i << "=" << landingItems.back();
     }
-    qCDebug(ShipLandingLog) << landingItems;
     _vehicle->missionManager()->writeMissionItems(landingItems);
 
     // Bei Geofence -> ReturnMode (GF_ACTION: 3, s.a. Checklist Failure)
@@ -243,8 +246,8 @@ void ShipLanding::landObserve()
     {
         // Check if plane has minimum distance to ship and is behind ship.
         // TODO: Ask SKO if we can seperate the calculation from calcPosRelat...
-        bool plane_in_window = true;
-        if (plane_in_window)
+        bool plane_in_area = true;
+        if (!plane_in_area)
         {
             qCDebug(ShipLandingLog) << "landObserve: Plane not in landing area.";
             landing = false;
@@ -290,7 +293,6 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
 
     // Transfer GPS data to struct
      ship.coord = update.coordinate();
-     qCDebug(ShipLandingLog) << "update_posShip: Ship coord=" << ship.coord;
 
    /*
     * Calculate heading.
@@ -329,5 +331,4 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
     }
 
     ship.dir = ship.dir + (HEADING_WEIGHT * (new_dir - ship.dir));
-    qCDebug(ShipLandingLog) << "update_posShip: Ship direction=" << ship.dir;
 }
