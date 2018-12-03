@@ -15,6 +15,8 @@ const double NET_DISTANCE = 3/2;        //!< Distance ship position to end of ne
 const QList<double> WPLIST_DIST({350, 250, 100, -100});         //!< Distance plane to ship
 const QList<unsigned int> WPLIST_ALT({50, 15, 5, 5});           //!< Altitude (relative)
 const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1});    //!< Acceptance radius for the waypoint
+const double GEOFENCE_ANGLE_NET = 180;      //!< Geofence angle next to net
+const double GEOFENCE_ANGLE_LOITER = 25;  //!< Geofence angle behind ship
 const double FALLBACK_DIST = -100;      //!< Distance plane to ship
 const unsigned int FALLBACK_ALT = 200;  //!< Altitude (relative)
 const int FALLBACK_HDG = 45;            //!< Heading relative to ship
@@ -224,10 +226,14 @@ void ShipLanding::landSend()
     QmlObjectListModel polygons, circles;
     QGCFencePolygon polygon = new QGCFencePolygon(true);
     QGeoCoordinate breach = wp.back();
-    polygon.appendVertex(calcPosRelativeToShip(NET_DISTANCE, WPLIST_ALT.at(1), 180));
-    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE, WPLIST_ALT.at(0), 15));
-    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE, WPLIST_ALT.at(0), -15));
-    polygon.appendVertex(calcPosRelativeToShip(-NET_DISTANCE, WPLIST_ALT.at(1), -180));
+    polygon.appendVertex(calcPosRelativeToShip(NET_DISTANCE, WPLIST_ALT.at(1),
+                                               GEOFENCE_ANGLE_NET));
+    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE, WPLIST_ALT.at(0),
+                                               GEOFENCE_ANGLE_LOITER));
+    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE, WPLIST_ALT.at(0),
+                                               -GEOFENCE_ANGLE_LOITER));
+    polygon.appendVertex(calcPosRelativeToShip(-NET_DISTANCE, WPLIST_ALT.at(1),
+                                               -GEOFENCE_ANGLE_NET));
     polygons.insert(0, &polygon);
     //_vehicle->geoFenceManager()->sendToVehicle(breach, polygons, circles);
 
