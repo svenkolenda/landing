@@ -156,6 +156,7 @@ int ShipLanding::calcHeadingDiff()
 }
 
 
+
 //-Public slots--------------------------------------------------------------//
 
 void ShipLanding::landingStart()
@@ -171,6 +172,8 @@ void ShipLanding::landingCancel()
     stop_timerObserve();                // stop timer to observe landing
 }
 
+
+
 //-Private Slots-------------------------------------------------------------//
 
 void ShipLanding::loiterSend()
@@ -185,7 +188,7 @@ void ShipLanding::loiterSend()
 
 void ShipLanding::landSend()
 {
-    qCDebug() << "landSend: Build and send the landing mission";
+    qCDebug(ShipLandingLog) << "landSend: Build and send the landing mission";
     QList<QGeoCoordinate> wp;
     for (int i=1; i<WPLIST_DIST.count(); i++)
     {

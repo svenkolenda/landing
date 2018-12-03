@@ -128,7 +128,7 @@ private slots:
     /*!
      * \brief Build and send the loiter message to the plane.
      */
-    void sendBehindShip();
+    void loiterSend();
     /*!
      * \brief Initiate the landing process.
      * Called after user starts the landing. Stops the timerLoiter.
