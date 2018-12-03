@@ -1,7 +1,7 @@
 ﻿#ifndef ShipLANDING_H
 #define ShipLANDING_H
 
-/*-Includes-------------------------------------------------------------------*/
+//-Includes------------------------------------------------------------------//
 
 #include <stdint.h>
 #include <math.h>
@@ -18,7 +18,7 @@
 #include "QmlObjectListModel.h"
 #include "QGCFencePolygon.h"
 
-/*-Local defines--------------------------------------------------------------*/
+//-Local defines-------------------------------------------------------------//
 
 Q_DECLARE_LOGGING_CATEGORY(ShipLandingLog)
 
@@ -32,7 +32,7 @@ struct __GPS
     double dir = 0;
 };
 
-/*-ShipLanding-----------------------------------------------------------------*/
+//-ShipLanding---------------------------------------------------------------//
 // Timer interval in seconds
 const int TMR_INTVL_LOITER = 120;  //!< Timer intervall to check loiter
 const int TMR_INTVL_OBS = 60;      //!< Timer intervall to observe landing
@@ -45,11 +45,12 @@ class ShipLanding : public QObject
     Q_OBJECT
 
 private:    // attributes
-    static ShipLanding* _instance;              //!< Singleton instance of ShipLanding
+    static ShipLanding* _instance;              //!< Singleton instance
     Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
     QTimer* timerLoiter = new QTimer(this);     //!< Timer to update loiter
     QTimer* timerObserve = new QTimer(this);    //!< Timer to observe landing
     __GPS ship;                                 //!< Information struct of ship
+    bool landing;
 
 public:     // functions
     /*!
@@ -66,7 +67,7 @@ public:     // functions
 
 private:    // functions
     /*!
-     * \brief Connect landing and cancel, connect PositionManger ship and plane, configure the timerLoiter.
+     * \brief Connect landing and cancel, connect PositionManger ship, configure timer.
      * \param parent QObject parent from the ShipLanding object
      */
     ShipLanding(QObject *parent = nullptr);
@@ -89,6 +90,30 @@ private:    // functions
      */
     QGeoCoordinate calcPosRelativeToShip(double, unsigned int, double);
 
+   /*!
+    * \brief Send the plane behind the ship.
+    */
+    void sendBehindShip();
+
+    /*!
+     * \brief Calculates a point to the upper right of the ship.
+     * \return QGeoCoordinate the plane should navigate to
+     */
+    QGeoCoordinate calcFailsafe();
+
+    /*!
+     * \brief Calculate heading rate.
+     * \return Heading rate of the ship
+     */
+    int calcHeadingRate();
+
+   /*!
+    * \brief Calculate heading difference between ship and plane
+    * \return Heading difference between ship and plane
+    */
+    int calcHeadingDiff();
+
+
 public slots:
     /*!
      * \brief Reaction to init the landing. Called by UI.
@@ -103,7 +128,7 @@ private slots:
     /*!
      * \brief Build and send the loiter message to the plane.
      */
-    void loiterSend();
+    void sendBehindShip();
     /*!
      * \brief Initiate the landing process.
      * Called after user starts the landing. Stops the timerLoiter.
@@ -114,7 +139,7 @@ private slots:
     /*!
      * \brief Observe ship heading, ship position relative to wp2 (in front of ship). Send mission if needed.
      */
-    void landObserve();     //APF
+    void landObserve();
 
     /*!
      * \brief Called when the plane moved. Update the saved location and heading.
@@ -123,7 +148,7 @@ private slots:
 
 signals:
     void confirmLandingStart();      //!< Signal to start landing process
-    void confirmLandingCancel();     //!< Signal to cancel landing proces and start loiter
+    void confirmLandingCancel();     //!< Signal to cancel landing proces
 };
 
 #endif // ShipLANDING_H
