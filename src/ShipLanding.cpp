@@ -145,19 +145,17 @@ QGeoCoordinate ShipLanding::calcFailsafe()
     return failsafe;
 }
 
-double ShipLanding::calcHeadingRate(double lat_A, double lon_A, double lat_B, double lon_B) //A=Start -old Pos, B=Ziel -new Pos
+int ShipLanding::calcHeadingRate()
 {
-    double heading_rate = 0;
-    // TODO: APF Berechnung Frage SBR
-    qDebug(ShipLandingLog()) << lat_A << " | " << lon_A << " | " << lat_B << " | " << lon_B;
+    int heading_rate = 0;
+    // TODO: APF
     return heading_rate;
 }
 
-double ShipLanding::calcHeadingDiff()
+int ShipLanding::calcHeadingDiff()
 {
-    double heading_difference = 0; //Berechnung hier in Funktion
-    double heading_rate = calcHeadingRate(lat_old_Coord, lon_old_Coord, ship.coord.latitude(), ship.coord.longitude());
-    heading_difference = fabs((heading_rate - heading_miss)/2);
+    int heading_difference = 0;
+    //(fabs(ship.dir - dir_miss)); //TODO Berechnung aus akt. ship.dir und dir_miss
     return heading_difference;
 }
 
@@ -195,6 +193,9 @@ void ShipLanding::loiterSend()
 
 void ShipLanding::landSend()
 {
+    //calc heading difference through direction when Mission uploaded
+    dir_miss = ship.dir;
+
     qCDebug(ShipLandingLog) << "landSend: Build and send the landing mission";
     QList<QGeoCoordinate> wp;
     for (int i=1; i<WPLIST_DIST.count(); i++)
@@ -202,6 +203,8 @@ void ShipLanding::landSend()
         wp.push_back(calcPosRelativeToShip(WPLIST_DIST.at(i), WPLIST_ALT.at(i)));
     }
     qCDebug(ShipLandingLog) << "landSend: WP-ist=" << wp;
+
+
 
     // Convert Waypoints into MissionItems
     QList<MissionItem*> landingItems;
@@ -262,8 +265,7 @@ void ShipLanding::landObserve()
             sendBehindShip();
         }
         // Calculate the heading rate of ship_position at the moment
-        else if (calcHeadingRate(lat_old_Coord, lon_old_Coord,
-                  ship.coord.latitude(), ship.coord.longitude()) > MAX_HDNG_RATE)
+        else if (calcHeadingRate() > MAX_HDNG_RATE)
         {
             qCDebug(ShipLandingLog) << "landObserve: Too much heading change!";
             landing = false;
@@ -293,8 +295,6 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
 {
    // Safe the old GPS data to calculate heading. If NaN pos is HSA Etech.
     QGeoCoordinate old_ship_pos = ship.coord;
-    lat_old_Coord = old_ship_pos.latitude(); //safe for headingcalcdiff
-    lon_old_Coord = old_ship_pos.longitude();
     if (qIsNaN(ship.coord.longitude()) || qIsNaN(ship.coord.latitude()))
     {
         qCDebug(ShipLandingLog) << "update_posShip: Old ship pos is Nan.";
