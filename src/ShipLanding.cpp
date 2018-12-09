@@ -145,17 +145,19 @@ QGeoCoordinate ShipLanding::calcFailsafe()
     return failsafe;
 }
 
-int ShipLanding::calcHeadingRate()
+double ShipLanding::calcHeadingRate(double lat_A, double lon_A, double lat_B, double lon_B) //A=Start -old Pos, B=Ziel -new Pos
 {
-    int heading_rate = 0;
-    // TODO: APF
+    double heading_rate = 0;
+    // TODO: APF Berechnung Frage SBR
+    qDebug(ShipLandingLog()) << lat_A << " | " << lon_A << " | " << lat_B << " | " << lon_B;
     return heading_rate;
 }
 
-int ShipLanding::calcHeadingDiff()
+double ShipLanding::calcHeadingDiff()
 {
-    int heading_difference = 0;
-    // TODO: APF
+    double heading_difference = 0; //Berechnung hier in Funktion
+    double heading_rate = calcHeadingRate(lat_old_Coord, lon_old_Coord, ship.coord.latitude(), ship.coord.longitude());
+    heading_difference = fabs((heading_rate - heading_miss)/2);
     return heading_difference;
 }
 
@@ -259,8 +261,9 @@ void ShipLanding::landObserve()
             landing = false;
             sendBehindShip();
         }
-        // Calculate the heading rate
-        else if (calcHeadingRate() > MAX_HDNG_RATE)
+        // Calculate the heading rate of ship_position at the moment
+        else if (calcHeadingRate(lat_old_Coord, lon_old_Coord,
+                  ship.coord.latitude(), ship.coord.longitude()) > MAX_HDNG_RATE)
         {
             qCDebug(ShipLandingLog) << "landObserve: Too much heading change!";
             landing = false;
@@ -290,6 +293,8 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
 {
    // Safe the old GPS data to calculate heading. If NaN pos is HSA Etech.
     QGeoCoordinate old_ship_pos = ship.coord;
+    lat_old_Coord = old_ship_pos.latitude(); //safe for headingcalcdiff
+    lon_old_Coord = old_ship_pos.longitude();
     if (qIsNaN(ship.coord.longitude()) || qIsNaN(ship.coord.latitude()))
     {
         qCDebug(ShipLandingLog) << "update_posShip: Old ship pos is Nan.";

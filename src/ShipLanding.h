@@ -105,14 +105,16 @@ private:    // functions
      * \brief Calculate heading rate.
      * \return Heading rate of the ship
      */
-    int calcHeadingRate();
+    double calcHeadingRate(double lat_A, double lon_A, double lat_B, double lon_B);
 
    /*!
     * \brief Calculate heading difference between ship and plane
     * \return Heading difference between ship and plane
     */
-    int calcHeadingDiff();
-
+    double calcHeadingDiff();
+    //Parameter fuer calcHeadingDiff
+    double heading_miss; //Heading Mission landing TODO BERECHNEN
+    double lat_old_Coord; double lon_old_Coord; //safe old Pos of Coordinate
 
 public slots:
     /*!
