@@ -139,23 +139,16 @@ void ShipLanding::sendBehindShip()
     }
 }
 
-QGeoCoordinate ShipLanding::calcFailsafe()
+double ShipLanding::calcHeadingRate()
 {
-    QGeoCoordinate failsafe;
-    // TODO: APF
-    return failsafe;
-}
-
-int ShipLanding::calcHeadingRate()
-{
-    int heading_rate = 0;
+    double heading_rate = 0;
     double xa, ya, xsum = 0, ysum = 0; //x average, y average, x sum, y sum
     double up = 0, down = 0;
 
     // calculate averages first
     for (unsigned int i = 0; i < ship.dir_his.size(); i++)
     {
-        xsum += i;
+        xsum += ship.timestamp_his.at(i).toSecsSinceEpoch();
         ysum += ship.dir_his.at(i);
     }
     xa = xsum / ship.dir_his.size();
@@ -164,21 +157,21 @@ int ShipLanding::calcHeadingRate()
     // now, calculate what's on the fracture
     for (unsigned int i = 0; i < ship.dir_his.size(); i++)
     {
-        up += (i - xa) * (ship.dir_his.at(i) - ya);
-        down += (i - xa) * (i - xa);
+        up += (ship.timestamp_his.at(i).toSecsSinceEpoch() - xa)
+                                                    * (ship.dir_his.at(i) - ya);
+        down += (ship.timestamp_his.at(i).toSecsSinceEpoch() - xa)
+                           * (ship.timestamp_his.at(i).toSecsSinceEpoch() - xa);
     }
 
     if (down != 0)
         heading_rate = up / down;
 
-    // TODO: Multiply with update interval of updateposShip
-
     return heading_rate;
 }
 
-int ShipLanding::calcHeadingDiff()
+double ShipLanding::calcHeadingDiff()
 {
-    return (int) fabs(ship.dir - dir_miss);
+    return fabs(ship.dir - dir_miss);
 }
 
 
@@ -326,7 +319,7 @@ void ShipLanding::landObserve()
 
 void ShipLanding::update_posShip(QGeoPositionInfo update)
 {
-   // Safe the old GPS data to calculate heading. If NaN pos is HSA Etech.
+    // Safe the old GPS data to calculate heading. If NaN pos is HSA Etech.
     QGeoCoordinate old_ship_pos = ship.coord;
     if (qIsNaN(ship.coord.longitude()) || qIsNaN(ship.coord.latitude()))
     {
@@ -336,7 +329,7 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
     }
 
     // Transfer GPS data to struct
-     ship.coord = update.coordinate();
+    ship.coord = update.coordinate();
 
    /*
     * Calculate heading.
@@ -380,4 +373,9 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
     ship.dir_his.push_back(ship.dir);
     if (ship.dir_his.size() > HEADING_HIS_SIZE)
         ship.dir_his.pop_front();
+
+    // Put new timestamp in timestamp history queue
+    ship.timestamp_his.push_back(update.timestamp());
+    if (ship.timestamp_his.size() > HEADING_HIS_SIZE)
+        ship.timestamp_his.pop_front();
 }

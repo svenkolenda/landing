@@ -30,8 +30,9 @@ Q_DECLARE_LOGGING_CATEGORY(ShipLandingLog)
 struct __GPS
 {
     QGeoCoordinate coord;
-    double dir = 0;
+    double dir = 0; // TODO: Take out
     std::deque <double> dir_his;
+    std::deque <QDateTime> timestamp_his;
 };
 
 //-ShipLanding---------------------------------------------------------------//
@@ -99,22 +100,16 @@ private:    // functions
     void sendBehindShip();
 
     /*!
-     * \brief Calculates a point to the upper right of the ship.
-     * \return QGeoCoordinate the plane should navigate to
-     */
-    QGeoCoordinate calcFailsafe();
-
-    /*!
      * \brief Calculate heading rate.
      * \return Heading rate of the ship
      */
-    int calcHeadingRate();
+    double calcHeadingRate();
 
    /*!
     * \brief Calculate heading difference between ship and plane
     * \return Heading difference between ship and plane
     */
-    int calcHeadingDiff();
+    double calcHeadingDiff();
 
 public slots:
     /*!
