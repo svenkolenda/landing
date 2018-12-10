@@ -52,7 +52,8 @@ private:    // attributes
     QTimer* timerLoiter = new QTimer(this);     //!< Timer to update loiter
     QTimer* timerObserve = new QTimer(this);    //!< Timer to observe landing
     __GPS ship;                                 //!< Information struct of ship
-    bool landing;
+    bool landing;                               //!< landing flag
+    double dir_miss;                            //!< Heading Mission landing
 
 public:     // functions
     /*!
@@ -114,7 +115,6 @@ private:    // functions
     * \return Heading difference between ship and plane
     */
     int calcHeadingDiff();
-    double dir_miss; //Heading Mission landing
 
 public slots:
     /*!

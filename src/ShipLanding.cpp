@@ -178,9 +178,7 @@ int ShipLanding::calcHeadingRate()
 
 int ShipLanding::calcHeadingDiff()
 {
-    int heading_difference = 0;
-    //(fabs(ship.dir - dir_miss)); //TODO Berechnung aus akt. ship.dir und dir_miss
-    return heading_difference;
+    return (int) fabs(ship.dir - dir_miss);
 }
 
 
