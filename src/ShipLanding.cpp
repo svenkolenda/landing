@@ -28,6 +28,7 @@ const double DEGREE_TO_RAD = M_PI / 180;    //!< conversion degree to radian
 // Cartesian Coordinate System: x-axis with 0 degree going counterclockwise
 // Heading System: NORTH (y-axis) with 0 degress going clockwise
 const double HEADING_WEIGHT = 0.1;                          //!< heading weight
+const int HEADING_HIS_SIZE = 10;    //!< Heading history size
 const int NORTH = 0, EAST = 90, SOUTH = 180, WEST = 270;    //!< heading angles
 const int MAX_HDNG_DIFF = 10;       //!< Maximum acceptable heading difference
 const int MAX_HDNG_RATE = 2;        //!< Maximum acceptable heading change in degrees per second
@@ -148,7 +149,30 @@ QGeoCoordinate ShipLanding::calcFailsafe()
 int ShipLanding::calcHeadingRate()
 {
     int heading_rate = 0;
-    // TODO: APF
+    double xa, ya, xsum = 0, ysum = 0; //x average, y average, x sum, y sum
+    double up = 0, down = 0;
+
+    // calculate averages first
+    for (unsigned int i = 0; i < ship.dir_his.size(); i++)
+    {
+        xsum += i;
+        ysum += ship.dir_his.at(i);
+    }
+    xa = xsum / ship.dir_his.size();
+    ya = ysum / ship.dir_his.size();
+
+    // now, calculate what's on the fracture
+    for (unsigned int i = 0; i < ship.dir_his.size(); i++)
+    {
+        up += (i - xa) * (ship.dir_his.at(i) - ya);
+        down += (i - xa) * (i - xa);
+    }
+
+    if (down != 0)
+        heading_rate = up / down;
+
+    // TODO: Multiply with update interval of updateposShip
+
     return heading_rate;
 }
 
@@ -251,9 +275,11 @@ void ShipLanding::landObserve()
     if (!_vehicle)
     {
         qCDebug(ShipLandingLog) << "landObserve: Connection to vehicle lost.";
+        return;
     }
+
     // Check plane in landing procedure
-    else if (!landing)
+    if (!landing)
     {
         // Check if plane has minimum distance to ship and is behind ship.
         // TODO: Ask SKO if we can seperate the calculation from calcPosRelat...
@@ -278,14 +304,23 @@ void ShipLanding::landObserve()
             landing = true; //We are now in the process of landing.
             landSend();
         }
+
+        return;
     }
+
     // Check heading diff while plane is in landing process
-    else if (calcHeadingDiff() > MAX_HDNG_DIFF)
+    if (calcHeadingDiff() > MAX_HDNG_DIFF)
     {
         qCDebug(ShipLandingLog) << "landObserve: Landing impossible. Fallback.";
-        // TODO: Ask SKO about the following:
+
+        if ((ship.coord - plane.coord) < PONR)
+        {
+            // TODO: Fallback
+        }
+        // HDG - 180 because the function assumes 0 to be behind ship
         _vehicle->guidedModeGotoLocation
-             (calcPosRelativeToShip(FALLBACK_DIST, FALLBACK_ALT, FALLBACK_HDG));
+            (calcPosRelativeToShip
+                             (FALLBACK_DIST, FALLBACK_ALT, FALLBACK_HDG - 180));
         sendBehindShip();
         landing = false;
     }
@@ -342,4 +377,9 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
     }
 
     ship.dir = ship.dir + (HEADING_WEIGHT * (new_dir - ship.dir));
+
+    // Put new direction in direction history queue
+    ship.dir_his.push_back(ship.dir);
+    if (ship.dir_his.size() > HEADING_HIS_SIZE)
+        ship.dir_his.pop_front();
 }

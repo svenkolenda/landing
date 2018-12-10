@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <math.h>
+#include <deque>
 
 #include <QObject>
 #include <QTimer>
@@ -30,6 +31,7 @@ struct __GPS
 {
     QGeoCoordinate coord;
     double dir = 0;
+    std::deque <double> dir_his;
 };
 
 //-ShipLanding---------------------------------------------------------------//
