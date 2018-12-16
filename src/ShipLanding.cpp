@@ -7,10 +7,6 @@ ShipLanding* ShipLanding::_instance = nullptr;
 QGC_LOGGING_CATEGORY(ShipLandingLog, "ShipLandingLog")
 
 //-Local defines-------------------------------------------------------------//
-// Distance in meter
-const double MAX_DISTANCE = 500;       //!< Maximum distance plane to ship
-const double NET_DISTANCE = 3/2;        //!< Distance ship position to end of net
-
 // WP-List 0: Loiter, 1: DownToAlt, 2: WP behind ship, 3: WP in front of ship
 const QList<double> WPLIST_DIST({350, 250, 100, -100});         //!< Distance plane to ship
 const QList<unsigned int> WPLIST_ALT({50, 15, 5, 5});           //!< Altitude (relative)
@@ -20,6 +16,13 @@ const double GEOFENCE_ANGLE_LOITER = 25;  //!< Geofence angle behind ship
 const double FALLBACK_DIST = -100;      //!< Distance plane to ship
 const unsigned int FALLBACK_ALT = 200;  //!< Altitude (relative)
 const int FALLBACK_HDG = 45;            //!< Heading relative to ship
+
+// Distance in meter
+const double MAX_DISTANCE = 500;       //!< Maximum distance plane to ship
+const double NET_DISTANCE = 3/2;        //!< Distance ship position to end of net
+const int    MAX_HOR_DIST = 150;        //!< Maximum horizontal distance to ship for start of landing approach
+const int    MAX_VERT_DIST = -int(MAX_DISTANCE); //!< Maximum vertical distance to ship for start of landing approach
+const int    MIN_VERT_DIST = -int(WPLIST_DIST.at(0)); //!< Minimum vertical distance to ship for start of landing approach
 
 // Calculation parameters for distance vs coordinates
 const unsigned int GAP_LATITUDE = 111300;   //!< gap between circles of latitude
@@ -107,6 +110,76 @@ QGeoCoordinate ShipLanding::calcPosRelativeToShip
     return pos;
 }
 
+_Distance ShipLanding::calcDistanceRelativeTo(double x_p, double y_p, double hdg,
+                                              double x_a, double y_a)
+{
+    _Distance dist;
+    double x_u, y_u, r;
+
+    /* Step one: Calculate the heading as a vector. */
+    if (hdg < WEST) // first quadrant
+    {
+        x_u = sin(hdg);
+        y_u = cos(hdg);
+    }
+    else if (hdg < SOUTH) // second quadrant
+    {
+        hdg -= 90;
+        x_u = cos(hdg);
+        y_u = -sin(hdg);
+    }
+    else if (hdg < WEST) // third quadrant
+    {
+        hdg -= 180;
+        x_u = -sin(hdg);
+        y_u = -cos(hdg);
+    }
+    else //fourth quadrant
+    {
+        hdg -= 270;
+        x_u = -cos(hdg);
+        y_u = sin(hdg);
+    }
+
+   /*
+    * Step two: Now we want to pull the following trick:
+    *
+    *                      P (Reference object)
+    *                      |
+    *                      | vertical distance
+    *                      | g
+    * (other object)       |
+    * A--------------------F
+    *   horizontal distance
+    *
+    * Let the reference be at point P and the other object be at point A.
+    * Together with it's heading vector u, P forms a straight line g, which is
+    * defined like this: g: p + r * u
+    * Here, p is the position vector of P, u is the heading vector, and r is
+    * a real factor. Now, we need to find the dropped perpendicular foot of A.
+    * Let's call that F. Afterwards, we just need to calculate the distance
+    * between A and F. Sounds easy right?
+    * The vector connecting A and F, which is f - a, can be defined like that:
+    * ( x_p + r*x_u - x_a )
+    * ( y_p + r*y_u - y_a )
+    * Since that vector has to be perpendicular to u, their scalar product has
+    * got to be zero. Put in formula:
+    * (x_p + r*x_u - x_a)*x_u + (y_p + r*y_u - y_a)*y_u = 0
+    * ... Some rearranging ...
+    */
+    r = (-x_p*x_u + x_a*x_u - y_p*y_u + y_a*y_u) / (pow(x_u, 2) + pow(y_u, 2));
+
+    /* Step three: Calculate length of vector f - a */
+    dist.horizontal_distance =
+                    sqrt(pow(x_p + r*x_u - x_a, 2) + pow(y_p + r*y_u - y_a, 2));
+
+    /* Step four: Calculate length of vector f - p */
+    dist.vertical_distance = sqrt(pow(r*x_u, 2) + pow(r*y_u, 2));
+
+    /* Step five: Return :) */
+    return dist;
+}
+
 void ShipLanding::sendBehindShip()
 {
     qCDebug(ShipLandingLog) << "sendBehindShip: Send the loiter message.";
@@ -141,26 +214,35 @@ void ShipLanding::sendBehindShip()
 
 double ShipLanding::calcHeadingRate()
 {
+   /*IMPORTANT NOTE*/
+   /*
+    * The heading rate (or Rate-of-Turn, as called in nautical science) can
+    * also come from good heading sensors and is available in the NMEA2000
+    * protocol. This means that this function may have to be replaced by
+    * something that is able to extract this information from the NMEA protocol
+    * and only uses this implementation in case that there is no available
+    * information.
+    */
     double heading_rate = 0;
     double xa, ya, xsum = 0, ysum = 0; //x average, y average, x sum, y sum
     double up = 0, down = 0;
 
     // calculate averages first
-    for (unsigned int i = 0; i < ship.dir_his.size(); i++)
+    for (unsigned int i = 0; i < ship.hdng_his.size(); i++)
     {
-        xsum += ship.timestamp_his.at(i).toSecsSinceEpoch();
-        ysum += ship.dir_his.at(i);
+        xsum += ship.hdng_his.at(i).timestamp.toSecsSinceEpoch();
+        ysum += ship.hdng_his.at(i).heading;
     }
-    xa = xsum / ship.dir_his.size();
-    ya = ysum / ship.dir_his.size();
+    xa = xsum / ship.hdng_his.size();
+    ya = ysum / ship.hdng_his.size();
 
     // now, calculate what's on the fracture
-    for (unsigned int i = 0; i < ship.dir_his.size(); i++)
+    for (unsigned int i = 0; i < ship.hdng_his.size(); i++)
     {
-        up += (ship.timestamp_his.at(i).toSecsSinceEpoch() - xa)
-                                                    * (ship.dir_his.at(i) - ya);
-        down += (ship.timestamp_his.at(i).toSecsSinceEpoch() - xa)
-                           * (ship.timestamp_his.at(i).toSecsSinceEpoch() - xa);
+        up += (ship.hdng_his.at(i).timestamp.toSecsSinceEpoch() - xa)
+                                           * (ship.hdng_his.at(i).heading - ya);
+        down += (ship.hdng_his.at(i).timestamp.toSecsSinceEpoch() - xa)
+                      * (ship.hdng_his.at(i).timestamp.toSecsSinceEpoch() - xa);
     }
 
     if (down != 0)
@@ -174,6 +256,39 @@ double ShipLanding::calcHeadingDiff()
     return fabs(ship.dir - dir_miss);
 }
 
+bool ShipLanding::checkPlanePos()
+{
+    // Calculate distance of plane relative to ship.
+    _Distance distance =
+        calcDistanceRelativeTo(ship.coord.longitude(), ship.coord.latitude(),
+                               ship.dir,
+                               _vehicle->coordinate().longitude(),
+                               _vehicle->coordinate().latitude());
+
+   /* If the plane isn't in a specific window behind the ship, don't try to
+    * land!
+    * The < and > are correct the way they are. This is because the vertical
+    * distance to ship should be negative. Smaller than MAX_VERT_DIST means
+    * further away from the ship, greater than MIN_VERT_DIST means too close
+    * to the ship.
+    */
+    if (fabs(distance.horizontal_distance) > MAX_HOR_DIST  ||
+        distance.vertical_distance   < MAX_VERT_DIST ||
+        distance.vertical_distance   > MIN_VERT_DIST)
+        return false;
+    else
+        return true;
+}
+
+double ShipLanding::checkShipPosDif()
+{
+    double x_p = _vehicle->coordinate().longitude(),
+           y_p = _vehicle->coordinate().latitude();
+    double hdg = _vehicle->heading()->rawValue().toDouble();
+    double x_a = ship.coord.longitude(), y_a = ship.coord.latitude();
+
+    return calcDistanceRelativeTo(x_p, y_p, hdg, x_a, y_a).horizontal_distance;
+}
 
 
 //-Public slots--------------------------------------------------------------//
@@ -304,11 +419,11 @@ void ShipLanding::landObserve()
     {
         qCDebug(ShipLandingLog) << "landObserve: Landing impossible. Fallback.";
 
-        if ((ship.coord - plane.coord) < PONR)
+        if (1)//(ship.coord - plane.coord) < PONR)
         {
             // TODO: Fallback
         }
-        // HDG - 180 because the function assumes 0 to be behind ship
+        // FALLBACK_HDG - 180 because the function assumes 0 to be behind ship
         _vehicle->guidedModeGotoLocation
             (calcPosRelativeToShip
                              (FALLBACK_DIST, FALLBACK_ALT, FALLBACK_HDG - 180));
@@ -332,7 +447,7 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
     ship.coord = update.coordinate();
 
    /*
-    * Calculate heading.
+    * Calculate heading. Replace later by values from GPS sensor.
     * Idea: Start heading with 0 degrees.
     * Afterwards, calculate a heading from old and new GPS.
     * Add this heading to the new one, but weighed in with a factor.
@@ -369,13 +484,11 @@ void ShipLanding::update_posShip(QGeoPositionInfo update)
 
     ship.dir = ship.dir + (HEADING_WEIGHT * (new_dir - ship.dir));
 
-    // Put new direction in direction history queue
-    ship.dir_his.push_back(ship.dir);
-    if (ship.dir_his.size() > HEADING_HIS_SIZE)
-        ship.dir_his.pop_front();
+    // Put new direction in history queue
+    _Heading new_entry = {ship.dir, update.timestamp()};
+    ship.hdng_his.push_back(new_entry);
+    if (ship.hdng_his.size() > HEADING_HIS_SIZE)
+        ship.hdng_his.pop_front();
 
-    // Put new timestamp in timestamp history queue
-    ship.timestamp_his.push_back(update.timestamp());
-    if (ship.timestamp_his.size() > HEADING_HIS_SIZE)
-        ship.timestamp_his.pop_front();
+    return;
 }

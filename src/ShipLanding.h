@@ -24,16 +24,34 @@
 Q_DECLARE_LOGGING_CATEGORY(ShipLandingLog)
 
 /**
+ * @brief Struct to save horizontal and vertical distance relative to an object
+ */
+typedef struct __Distance
+{
+    double vertical_distance;
+    double horizontal_distance;
+} _Distance;
+
+/**
+ * @brief Struct to save the heading together with a timestamp
+ *
+ */
+typedef struct __Heading
+{
+    double heading;
+    QDateTime timestamp;
+} _Heading;
+
+/**
  * @brief Struct to save the coordinates and the direction of plane/ship
  *
  */
-struct __GPS
+typedef struct __GPS
 {
     QGeoCoordinate coord;
     double dir = 0; // TODO: Take out
-    std::deque <double> dir_his;
-    std::deque <QDateTime> timestamp_his;
-};
+    std::deque <_Heading> hdng_his; // heading history
+} _GPS;
 
 //-ShipLanding---------------------------------------------------------------//
 // Timer interval in seconds
@@ -52,7 +70,7 @@ private:    // attributes
     Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
     QTimer* timerLoiter = new QTimer(this);     //!< Timer to update loiter
     QTimer* timerObserve = new QTimer(this);    //!< Timer to observe landing
-    __GPS ship;                                 //!< Information struct of ship
+    _GPS ship;                                 //!< Information struct of ship
     bool landing;                               //!< landing flag
     double dir_miss;                            //!< Heading Mission landing
 
@@ -94,6 +112,26 @@ private:    // functions
      */
     QGeoCoordinate calcPosRelativeToShip(double, unsigned int, double);
 
+    /*!
+     * \brief calculate vertical and horizontal distance relative to given
+     * coordinates and heading, with coordinates assumed to be (0,0) and heading
+     * as y-axis.
+     *                      P (Reference object)
+     *                      |
+     *                      | vertical distance
+     *                      |
+     * (other object)       |
+     * A--------------------F
+     *   horizontal distance
+     * \param longitude of reference object
+     * \param latitude of reference object
+     * \param heading of reference object in degrees
+     * \param longitude of other object
+     * \param latitude of other object
+     * \return Struct containing the distances.
+     */
+    _Distance calcDistanceRelativeTo(double, double, double, double, double);
+
    /*!
     * \brief Send the plane behind the ship.
     */
@@ -110,6 +148,18 @@ private:    // functions
     * \return Heading difference between ship and plane
     */
     double calcHeadingDiff();
+
+    /*!
+     * \brief Check if plane is in a certain area behind the ship.
+     * \return True if plane is in area where a landing approach is possible.
+     */
+    bool checkPlanePos();
+
+    /*!
+     * \brief Check if the ship is in a certain corridor so the plane can land.
+     * \return Perpendicular deviation from ideal path.
+     */
+    double checkShipPosDif();
 
 public slots:
     /*!
