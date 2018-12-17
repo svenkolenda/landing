@@ -634,6 +634,18 @@ QGCView {
                 }
             }
 
+            onShowStartRTSChanged: {
+                if (showStartRTS && _vehicleInRTLMode) {
+                    confirmAction(actionStartRTS)
+                }
+            }
+
+            onShowCancelRTSChanged: {
+                if (showCancelRTS) {
+                    confirmAction(actionCancelRTS)
+                }
+            }
+
             /// Close all dialogs
             function closeAll() {
                 mainWindow.enableToolbar()

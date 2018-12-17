@@ -76,8 +76,8 @@ Item {
     readonly property string mvPauseMessage:                    qsTr("Pause all vehicles at their current position.")
     readonly property string vtolTransitionFwdMessage:          qsTr("Transition VTOL to fixed wing flight.")
     readonly property string vtolTransitionMRMessage:           qsTr("Transition VTOL to multi-rotor flight.")
-    readonly property string startrtsMessage:                   qsTr("Start the approach.")
-    readonly property string cancelrtsMessage:                  qsTr("Stop landing and return to loiter.")
+    readonly property string startrtsMessage:                   qsTr("Start the approach for landing on the ship.")
+    readonly property string cancelrtsMessage:                  qsTr("Stop approach and return to loiter at home point behind the ship.")
 
     readonly property int actionRTL:                        1
     readonly property int actionLand:                       2
@@ -117,8 +117,8 @@ Item {
     property bool showOrbit:            _guidedActionsEnabled && !_hideOrbit && _vehicleFlying && _activeVehicle.orbitModeSupported && !_missionActive
     property bool showLandAbort:        _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing && _vehicleLanding
     property bool showGotoLocation:     _guidedActionsEnabled && _vehicleFlying
-    property bool showStartRTS:         _guidedActionsEnabled && _vehicleFlying
-    property bool showCancelRTS:        _guidedActionsEnabled && _vehicleFlying
+    property bool showStartRTS:         _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing
+    property bool showCancelRTS:        _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing && _vehicleLanding
 
     // Note: The '_missionItemCount - 2' is a hack to not trigger resume mission when a mission ends with an RTL item
     property bool showResumeMission:    _activeVehicle && !_vehicleArmed && _vehicleWasFlying && _missionAvailable && _resumeMissionIndex > 0 && (_resumeMissionIndex < _missionItemCount - 2)
@@ -387,7 +387,7 @@ Item {
         case actionStartMission:
         case actionContinueMission:
             _activeVehicle.startMission()
-            ShipLanding.landingCancel();
+            ShipLanding.landingInit();
             break
         case actionMVStartMission:
             rgVehicle = QGroundControl.multiVehicleManager.vehicles

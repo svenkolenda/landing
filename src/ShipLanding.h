@@ -18,11 +18,14 @@
 #include "MissionManager.h"
 #include "QmlObjectListModel.h"
 #include "QGCFencePolygon.h"
+#include "PX4FirmwarePlugin.h"
 
 //-Local defines-------------------------------------------------------------//
 
 Q_DECLARE_LOGGING_CATEGORY(ShipLandingLog)
 
+#ifndef SHIP_LANDING_GPS
+#define SHIP_LANDING_GPS
 /**
  * @brief Struct to save horizontal and vertical distance relative to an object
  */
@@ -42,6 +45,8 @@ typedef struct __Heading
     QDateTime timestamp;
 } _Heading;
 
+#ifndef STRUCT_GPS
+#define STRUCT_GPS
 /**
  * @brief Struct to save the coordinates and the direction of plane/ship
  *
@@ -52,12 +57,23 @@ typedef struct __GPS
     double dir = 0; // TODO: Take out
     std::deque <_Heading> hdng_his; // heading history
 } _GPS;
+#endif
+
+#ifndef HAVE_ENUM_SHIP_LANDING_STATE
+#define HAVE_ENUM_SHIP_LANDING_STATE
+typedef enum SHIP_LANDING_STATE
+{
+    IDLE,
+    MISSION,
+    RETURN,
+    LAND_REQ,
+    LAND_SEND,
+    LAND_APPROACH,
+    FALLBACK
+} SHIP_LANDING_STATE;
+#endif
 
 //-ShipLanding---------------------------------------------------------------//
-// Timer interval in seconds
-const int TMR_INTVL_LOITER = 30;  //!< Timer intervall to check loiter
-const int TMR_INTVL_OBS = 30;      //!< Timer intervall to observe landing
-
 /*!
  * \brief The ShipLanding class
  */
@@ -68,11 +84,12 @@ class ShipLanding : public QObject
 private:    // attributes
     static ShipLanding* _instance;              //!< Singleton instance
     Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-    QTimer* timerLoiter = new QTimer(this);     //!< Timer to update loiter
     QTimer* timerObserve = new QTimer(this);    //!< Timer to observe landing
-    _GPS ship;                                 //!< Information struct of ship
-    bool landing;                               //!< landing flag
     double dir_miss;                            //!< Heading Mission landing
+    __GPS ship;                                 //!< Information struct of ship
+    SHIP_LANDING_STATE state = IDLE;            //!< State of the Shiplanding
+    bool landReq = false;                       //!< Input of observeState
+    bool landCancel = false;                    //!< Input of observeState
 
 public:     // functions
     /*!
@@ -97,12 +114,6 @@ private:    // functions
      * \brief Private Destructor.
      */
     ~ShipLanding();
-
-    // Start and stop-functions for the timer
-    void start_timerLoiter() {timerLoiter->start(TMR_INTVL_LOITER * 1000);}
-    void stop_timerLoiter() {timerLoiter->stop();}
-    void start_timerObserve() {timerObserve->start(TMR_INTVL_OBS * 1000);}
-    void stop_timerObserve() {timerLoiter->stop();}
 
     /*!
      * \brief Calculate the position distance away from ship resting upon the heading.
@@ -132,38 +143,56 @@ private:    // functions
      */
     _Distance calcDistanceRelativeTo(double, double, double, double, double);
 
-   /*!
-    * \brief Send the plane behind the ship.
-    */
-    void sendBehindShip();
-
     /*!
      * \brief Calculate heading rate.
      * \return Heading rate of the ship
      */
     double calcHeadingRate();
-
-   /*!
-    * \brief Calculate heading difference between ship and plane
-    * \return Heading difference between ship and plane
-    */
-    double calcHeadingDiff();
-
     /*!
-     * \brief Check if plane is in a certain area behind the ship.
-     * \return True if plane is in area where a landing approach is possible.
+     * \brief Calculate heading difference between ship and plane
+     * \return Heading difference between ship and plane
      */
-    bool checkPlanePos();
-
+    double calcHeadingDiff();
     /*!
      * \brief Check if the ship is in a certain corridor so the plane can land.
      * \return Perpendicular deviation from ideal path.
      */
     double checkShipPosDif();
+    bool checkPlanePos();
+
+    /*!
+     * \brief Check if plane is in a certain area behind the ship.
+     * \return True if plane is in area where a landing approach is possible.
+     */
+    bool check_planePos();
+    /*!
+     * \brief check_shipDirRate
+     * \return true if okay
+     */
+    bool check_shipDirRate();
+    /*!
+     * \brief check_shipDirDif
+     * \return true if okay
+     */
+    bool check_shipDirDif();
+    /*!
+     * \brief check_shipPosDif
+     * \return true if okay
+     */
+    bool check_shipPosDif();
+    /*!
+     * \brief check_planeDist
+     * \return true if okay
+     */
+    bool check_planeDist();
 
 public slots:
     /*!
      * \brief Reaction to init the landing. Called by UI.
+     */
+    Q_INVOKABLE void landingInit();
+    /*!
+     * \brief Reaction to start the landing. Called by UI.
      */
     Q_INVOKABLE void landingStart();
     /*!
@@ -173,29 +202,31 @@ public slots:
 
 private slots:
     /*!
-     * \brief Build and send the loiter message to the plane.
+     * \brief Send the loiter point behind ship as home.
      */
-    void loiterSend();
+    void send_homePoint();
     /*!
-     * \brief Initiate the landing process.
-     * Called after user starts the landing. Stops the timerLoiter.
-     * Build and send landing mission to plane. Observe the ship movement.
-     * Provides the cancel option for the user.
+     * \brief GoTo the fallback point.
      */
-    void landSend();
+    void send_fallbackGoTo();
+    /*!
+     * \brief Build and send the landing mission.
+     */
+    void send_landMission();
+    /*!
+     * \brief Build and send the landing geofence.
+     */
+    void send_geofence();
+
     /*!
      * \brief Observe ship heading, ship position relative to wp2 (in front of ship). Send mission if needed.
      */
-    void landObserve();
+    void observe_state();
 
     /*!
      * \brief Called when the plane moved. Update the saved location and heading.
      */
     void update_posShip(QGeoPositionInfo update);
-
-signals:
-    void confirmLandingStart();      //!< Signal to start landing process
-    void confirmLandingCancel();     //!< Signal to cancel landing proces
 };
 
 #endif // ShipLANDING_H
