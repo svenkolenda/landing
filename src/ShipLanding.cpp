@@ -8,20 +8,21 @@ QGC_LOGGING_CATEGORY(ShipLandingLog, "ShipLandingLog")
 
 //-Local defines-------------------------------------------------------------//
 // Timer interval in seconds, indices by SHIP_LANDING_STATE
-const QList<int> TMR_INTVL({30, 15, 10, 5, 5, 2, 5});   //!< timer intervall list of state
+const QList<int> TMR_INTVL({30, 15, 10, 5, 5, 2, 1, 1, 1, 1});   //!< timer intervall list of state
 
 // WP-List 0: Loiter, 1: DownToAlt, 2: WP behind ship, 3: WP in front of ship
-const QList<double> WPLIST_DIST({375, 250, 100, -100});         //!< distance plane to ship
+const QList<double> WPLIST_DIST({400, 300, 100, -100});         //!< distance plane to ship
 const QList<unsigned int> WPLIST_ALT({50, 15, 5, 5});           //!< altitude (relative)
 const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1});    //!< acceptance radius for the waypoint
 const double GEOFENCE_ANGLE_NET = 180;      //!< geofence angle next to net
-const double GEOFENCE_ANGLE_LOITER = 25;  //!< geofence angle behind ship
+const double GEOFENCE_ANGLE_LOITER = 25;    //!< geofence angle behind ship
 const double FALLBACK_DIST = -100;      //!< distance plane to ship
 const unsigned int FALLBACK_ALT = 200;  //!< altitude (relative)
 const int FALLBACK_HDG = 45;            //!< heading relative to ship
+const QList<int>FAILSAFE_DIST({75, 50, 25, 10});      //!< min distance plane to ship
 
 // Distance in meter
-const double MAX_DISTANCE = 500;       //!< Maximum distance plane to ship
+const double MAX_DISTANCE = 500;        //!< Maximum distance plane to ship
 const double NET_DISTANCE = 3/2;        //!< Distance ship position to end of net
 const int    MAX_HOR_DIST = 150;        //!< Maximum horizontal distance to ship for start of landing approach
 const int    MAX_VERT_DIST = -int(MAX_DISTANCE); //!< Maximum vertical distance to ship for start of landing approach
@@ -302,7 +303,7 @@ void ShipLanding::send_homePoint()
                                  static_cast<float>(newHome.altitude()));
     }
 }
-void ShipLanding::send_fallbackGoTo()
+void ShipLanding::send_fallbackGoAround()
 {
     qCDebug(ShipLandingLog) << "send_FallbackGoToPoint: Send the fallback goto point.";
     _vehicle->guidedModeGotoLocation
@@ -359,31 +360,31 @@ void ShipLanding::send_landMission()
     _vehicle->missionManager()->writeMissionItems(landingItems);
 }
 
-bool ShipLanding::check_planePos()
+bool ShipLanding::check_planeNearHomePoint()
 {
     if (_vehicle->coordinate().distanceTo(ship.coord) > MAX_DISTANCE ||
             _vehicle->coordinate().distanceTo(ship.coord) < WPLIST_DIST.at(1))
         return false;
     else return true;
 }
-bool ShipLanding::check_shipDirRate()
+bool ShipLanding::check_shipHeadingRate()
 {
     if (calcHeadingRate() > MAX_HDNG_RATE)
         return false;
     else return true;
 }
-bool ShipLanding::check_shipDirDif()
+bool ShipLanding::check_shipHeadingDifference()
 {
     if (calcHeadingDiff() > MAX_HDNG_DIFF)
         return false;
     else return true;
 }
-bool ShipLanding::check_shipPosDif()
+bool ShipLanding::check_shipDroveOverLastWP()
 {
     // ship passes last wp formerly in front of ship
     return true;
 }
-bool ShipLanding::check_planeDist()
+bool ShipLanding::check_maxDistShipToPlane()
 {
     if (ship.coord.distanceTo(_vehicle->coordinate()) > MAX_DISTANCE)
         return false;
@@ -392,7 +393,7 @@ bool ShipLanding::check_planeDist()
 
 void ShipLanding::observe_state()
 {
-    if (state != IDLE && !check_planeDist())
+    if (state != IDLE && !check_maxDistShipToPlane())
         send_homePoint();
 
     switch (state) {
@@ -411,18 +412,18 @@ void ShipLanding::observe_state()
         break;
     case RETURN:
         qCDebug(ShipLandingLog) << "observeState: RETURN";
-        if (!check_planeDist()  && _vehicle->flightMode().compare(_vehicle->rtlFlightMode(), Qt::CaseInsensitive) != 0)
+        if (!check_maxDistShipToPlane()  && _vehicle->flightMode().compare(_vehicle->rtlFlightMode(), Qt::CaseInsensitive) != 0)
             _vehicle->guidedModeRTL();
         if (landReq)
             state = LAND_REQ;
         break;
     case LAND_REQ:
         qCDebug(ShipLandingLog) << "observeState: LAND_REQ";
-        if (!check_planeDist())
+        if (!check_maxDistShipToPlane())
             _vehicle->guidedModeRTL();
         if (landCancel)
             state = RETURN;
-        else if (check_planePos() && check_shipDirRate())
+        else if (check_planeNearHomePoint() && check_shipHeadingRate())
             state = LAND_SEND;
         break;
     case LAND_SEND:
@@ -441,23 +442,50 @@ void ShipLanding::observe_state()
         break;
     case LAND_APPROACH:
         qCDebug(ShipLandingLog) << "observeState: LAND_APPROACH";
-        if (check_planePos() || check_shipDirDif())
+        if (checkPlanePos() || check_shipHeadingDifference())
         {
-            _vehicle->_setLanding(false);
-            state = FALLBACK;
+            double dist = ship.coord.distanceTo(_vehicle->coordinate());
+            if (dist > FAILSAFE_DIST.at(0))
+                state = FALLBACK_RESTART_APPROACH;
+            else if (dist > FAILSAFE_DIST.at(1))
+                state = FALLBACK_RESTART_LOITER;
+            else if (dist > FAILSAFE_DIST.at(2))
+                state = FALLBACK_GO_AROUND;
+            else if (dist > FAILSAFE_DIST.at(3))
+                state = FALLBACK_PNR;
         }
         else if (landCancel)
         {
             _vehicle->_setLanding(false);
             state = RETURN;
         }
-        else if (check_shipPosDif())
-            state = LAND_SEND;
+        else if (check_shipDroveOverLastWP())
+            state = FALLBACK_RESTART_APPROACH;
         break;
-    case FALLBACK:
-        qCDebug(ShipLandingLog) << "observeState: FALLBACK";
-        send_fallbackGoTo();
+    case FALLBACK_RESTART_APPROACH:
+        qCDebug(ShipLandingLog) << "observeState: FALLBACK_RESTART_APPROACH";
+        state = LAND_SEND;
+        break;
+    case FALLBACK_RESTART_LOITER:
+        qCDebug(ShipLandingLog) << "observeState: FALLBACK_RESTART_LOITER";
+        _vehicle->_setLanding(false);
         state = LAND_REQ;
+        landReq = true;
+        break;
+    case FALLBACK_GO_AROUND:
+        qCDebug(ShipLandingLog) << "observeState: FALLBACK_GO_AROUND";
+        send_fallbackGoAround();
+        _vehicle->_setLanding(false);
+        state = RETURN;
+        landReq = false;
+        break;
+    case FALLBACK_PNR:
+        qCDebug(ShipLandingLog) << "observeState: FALLBACK_PNR";
+        if (landCancel)
+        {
+            _vehicle->_setLanding(false);
+            state = RETURN;
+        }
         break;
     }
 

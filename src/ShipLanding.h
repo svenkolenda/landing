@@ -45,8 +45,6 @@ typedef struct __Heading
     QDateTime timestamp;
 } _Heading;
 
-#ifndef STRUCT_GPS
-#define STRUCT_GPS
 /**
  * @brief Struct to save the coordinates and the direction of plane/ship
  *
@@ -63,13 +61,16 @@ typedef struct __GPS
 #define HAVE_ENUM_SHIP_LANDING_STATE
 typedef enum SHIP_LANDING_STATE
 {
-    IDLE,
-    MISSION,
-    RETURN,
-    LAND_REQ,
-    LAND_SEND,
-    LAND_APPROACH,
-    FALLBACK
+    IDLE,                           // 0
+    MISSION,                        // 1
+    RETURN,                         // 2
+    LAND_REQ,                       // 3
+    LAND_SEND,                      // 4
+    LAND_APPROACH,                  // 5
+    FALLBACK_RESTART_APPROACH,      // 6
+    FALLBACK_RESTART_LOITER,        // 7
+    FALLBACK_GO_AROUND,             // 8
+    FALLBACK_PNR                    // 9
 } SHIP_LANDING_STATE;
 #endif
 
@@ -164,27 +165,28 @@ private:    // functions
      * \brief Check if plane is in a certain area behind the ship.
      * \return True if plane is in area where a landing approach is possible.
      */
-    bool check_planePos();
+    bool check_planeNearHomePoint();
     /*!
-     * \brief check_shipDirRate
+     * \brief Check if the rate of the ship heading is greater than MAX_HDNG_RATE.
      * \return true if okay
      */
-    bool check_shipDirRate();
+    bool check_shipHeadingRate();
     /*!
-     * \brief check_shipDirDif
+     * \brief Check if the difference of the ship heading to the mission heading
+     * is greater than MAX_HDNG_DIFF.
      * \return true if okay
      */
-    bool check_shipDirDif();
+    bool check_shipHeadingDifference();
     /*!
-     * \brief check_shipPosDif
+     * \brief Check if the ship drove over the last wp of the landing mission.
      * \return true if okay
      */
-    bool check_shipPosDif();
+    bool check_shipDroveOverLastWP();
     /*!
-     * \brief check_planeDist
+     * \brief Check if the distance ship to plane is greater than MAX_DISTANCE.
      * \return true if okay
      */
-    bool check_planeDist();
+    bool check_maxDistShipToPlane();
 
 public slots:
     /*!
@@ -208,7 +210,7 @@ private slots:
     /*!
      * \brief GoTo the fallback point.
      */
-    void send_fallbackGoTo();
+    void send_fallbackGoAround();
     /*!
      * \brief Build and send the landing mission.
      */
