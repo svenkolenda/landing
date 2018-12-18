@@ -158,14 +158,18 @@ private:    // functions
      * \brief Check if the ship is in a certain corridor so the plane can land.
      * \return Perpendicular deviation from ideal path.
      */
-    double checkShipPosDif();
-    bool checkPlanePos();
+    double calcShipPosDif();
 
     /*!
      * \brief Check if plane is in a certain area behind the ship.
      * \return True if plane is in area where a landing approach is possible.
      */
     bool check_planeNearHomePoint();
+    /*!
+     * \brief Check if ship is in the landing corridor of the mission.
+     * \return true if in landing corridor
+     */
+    bool check_shipInLandingCorridor();
     /*!
      * \brief Check if the rate of the ship heading is greater than MAX_HDNG_RATE.
      * \return true if okay

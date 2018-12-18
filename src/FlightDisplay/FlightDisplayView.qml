@@ -544,11 +544,18 @@ QGCView {
                     action:     _guidedController.actionLandAbort,
                     visible:    _guidedController.showLandAbort
                 },
+                // ShipLanding
                 {
                     title:      _guidedController.startrtsTitle,
                     text:       _guidedController.startrtsMessage,
                     action:     _guidedController.actionStartRTS,
                     visible:    _guidedController.showStartRTS
+                },
+                {
+                    title:      _guidedController.cancelrtsTitle,
+                    text:       _guidedController.cancelrtsMessage,
+                    action:     _guidedController.actionCancelRTS,
+                    visible:    _guidedController.showCancelRTS
                 }
             ]
 
@@ -573,6 +580,7 @@ QGCView {
                     iconSource: "/res/rtl.svg",
                     action:     _guidedController.actionRTL
                 },
+                // ShipLanding
                 {
                     name:       _guidedController.startrtsTitle,
                     iconSource: "/res/startrts.svg",
@@ -634,6 +642,7 @@ QGCView {
                 }
             }
 
+            // ShipLanding
             onShowStartRTSChanged: {
                 if (showStartRTS && _vehicleInRTLMode) {
                     confirmAction(actionStartRTS)

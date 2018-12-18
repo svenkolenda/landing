@@ -117,8 +117,9 @@ Item {
     property bool showOrbit:            _guidedActionsEnabled && !_hideOrbit && _vehicleFlying && _activeVehicle.orbitModeSupported && !_missionActive
     property bool showLandAbort:        _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing && _vehicleLanding
     property bool showGotoLocation:     _guidedActionsEnabled && _vehicleFlying
+    // ShipLanding
     property bool showStartRTS:         _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing
-    property bool showCancelRTS:        _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing && _vehicleLanding
+    property bool showCancelRTS:        _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing && _vehicleInRTSMode
 
     // Note: The '_missionItemCount - 2' is a hack to not trigger resume mission when a mission ends with an RTL item
     property bool showResumeMission:    _activeVehicle && !_vehicleArmed && _vehicleWasFlying && _missionAvailable && _resumeMissionIndex > 0 && (_resumeMissionIndex < _missionItemCount - 2)
@@ -138,6 +139,7 @@ Item {
     property bool   _vehicleInMissionMode:  false
     property bool   _vehicleInRTLMode:      false
     property bool   _vehicleInLandMode:     false
+    property bool   _vehicleInRTSMode:      false       // ShipLanding
     property int    _missionItemCount:      missionController.missionItemCount
     property int    _currentMissionIndex:   missionController.currentMissionIndex
     property int    _resumeMissionIndex:    missionController.resumeMissionIndex
@@ -345,6 +347,7 @@ Item {
             confirmDialog.message = vtolTransitionMRMessage
             confirmDialog.hideTrigger = true
             break
+        // ShipLanding
         case actionStartRTS :
             confirmDialog.title = startrtsTitle
             confirmDialog.message = startrtsMessage
@@ -436,10 +439,13 @@ Item {
         case actionVtolTransitionToMRFlight:
             _activeVehicle.vtolInFwdFlight = false
             break
+        // ShipLanding
         case actionStartRTS:
+            _vehicleInRTSMode = true;
             ShipLanding.landingStart()
             break
         case actionCancelRTS:
+            _vehicleInRTSMode = false;
             ShipLanding.landingCancel()
             break
         default:
