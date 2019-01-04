@@ -1,16 +1,19 @@
-﻿#ifndef ShipLANDING_H
-#define ShipLANDING_H
+﻿#ifndef SHIPLANDING_H
+#define SHIPLANDING_H
 
-//-Includes------------------------------------------------------------------//
+//-Includes---------------------------------------------------------------------------------------//
 
+//C++
 #include <stdint.h>
 #include <math.h>
 #include <deque>
 
+//Qt
 #include <QObject>
 #include <QTimer>
 #include <QGeoCoordinate>
 
+//QGC
 #include "QGCApplication.h"
 #include "QGCLoggingCategory.h"
 #include "PositionManager.h"
@@ -20,12 +23,13 @@
 #include "QGCFencePolygon.h"
 #include "PX4FirmwarePlugin.h"
 
-//-Local defines-------------------------------------------------------------//
+//-Local defines----------------------------------------------------------------------------------//
 
 Q_DECLARE_LOGGING_CATEGORY(ShipLandingLog)
 
 #ifndef SHIP_LANDING_GPS
 #define SHIP_LANDING_GPS
+
 /**
  * @brief Struct to save horizontal and vertical distance relative to an object
  */
@@ -55,13 +59,15 @@ typedef struct __GPS
     double dir = 0; // TODO: Take out
     std::deque <_Heading> hdng_his; // heading history
 } _GPS;
-#endif
+
+#endif //SHIP_LANDING_GPS
 
 #ifndef HAVE_ENUM_SHIP_LANDING_STATE
 #define HAVE_ENUM_SHIP_LANDING_STATE
+
 typedef enum SHIP_LANDING_STATE
 {
-    IDLE,                           // 0
+    IDLE = 0,                       // 0
     MISSION,                        // 1
     RETURN,                         // 2
     LAND_REQ,                       // 3
@@ -72,9 +78,11 @@ typedef enum SHIP_LANDING_STATE
     FALLBACK_GO_AROUND,             // 8
     FALLBACK_PNR                    // 9
 } SHIP_LANDING_STATE;
-#endif
 
-//-ShipLanding---------------------------------------------------------------//
+#endif //HAVE_ENUM_SHIP_LANDING_STATE
+
+//-ShipLanding------------------------------------------------------------------------------------//
+
 /*!
  * \brief The ShipLanding class
  */
@@ -83,14 +91,14 @@ class ShipLanding : public QObject
     Q_OBJECT
 
 private:    // attributes
-    static ShipLanding* _instance;              //!< Singleton instance
-    Vehicle* _vehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-    QTimer* timerObserve = new QTimer(this);    //!< Timer to observe landing
-    double dir_miss;                            //!< Heading Mission landing
-    __GPS ship;                                 //!< Information struct of ship
-    SHIP_LANDING_STATE state = IDLE;            //!< State of the Shiplanding
-    bool landReq = false;                       //!< Input of observeState
-    bool landCancel = false;                    //!< Input of observeState
+    static ShipLanding* _instance;                  //!< Singleton instance
+    Vehicle* _vehicle        = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+    QTimer* timerObserve     = new QTimer(this);    //!< Timer to observe landing
+    double dir_miss;                                //!< Heading Mission landing
+    __GPS ship;                                     //!< Information struct of ship
+    SHIP_LANDING_STATE state = IDLE;                //!< State of the Shiplanding
+    bool landReq             = false;               //!< Input of observeState
+    bool landCancel          = false;               //!< Input of observeState
 
 public:     // functions
     /*!
@@ -100,6 +108,7 @@ public:     // functions
      * \return _instance of ShipLanding
      */
     static QObject* qmlInstance(QQmlEngine *engine, QJSEngine *scriptEngine);
+
     /*!
      * \brief Delete the instance and set _instance to nullptr.
      */
@@ -111,6 +120,7 @@ private:    // functions
      * \param parent QObject parent from the ShipLanding object
      */
     ShipLanding(QObject *parent = nullptr);
+
     /*!
      * \brief Private Destructor.
      */
@@ -119,10 +129,11 @@ private:    // functions
     /*!
      * \brief Calculate the position distance away from ship resting upon the heading.
      * \param distance planned distance behind ship
-     * \param alltitude planned absolute alltitude
-     * \return
+     * \param altitude planned absolute alltitude
+     * \param dDir wanted direction change
+     * \return pos
      */
-    QGeoCoordinate calcPosRelativeToShip(double, unsigned int, double);
+    QGeoCoordinate calcPosRelativeToShip(double distance, unsigned int altitude, double dDir);
 
     /*!
      * \brief calculate vertical and horizontal distance relative to given
@@ -135,25 +146,27 @@ private:    // functions
      * (other object)       |
      * A--------------------F
      *   horizontal distance
-     * \param longitude of reference object
-     * \param latitude of reference object
-     * \param heading of reference object in degrees
-     * \param longitude of other object
-     * \param latitude of other object
-     * \return Struct containing the distances.
+     * \param x_p longitude of reference object
+     * \param y_p latitude of reference object
+     * \param hdg heading of reference object in degrees
+     * \param x_a longitude of other object
+     * \param y_a latitude of other object
+     * \return dist struct containing the distances.
      */
-    _Distance calcDistanceRelativeTo(double, double, double, double, double);
+    _Distance calcDistanceRelativeTo(double x_p, double y_p, double hdg, double x_a, double y_a);
 
     /*!
      * \brief Calculate heading rate.
-     * \return Heading rate of the ship
+     * \return heading_rate Heading rate of the ship
      */
     double calcHeadingRate();
+
     /*!
      * \brief Calculate heading difference between ship and plane
      * \return Heading difference between ship and plane
      */
     double calcHeadingDiff();
+
     /*!
      * \brief Check if the ship is in a certain corridor so the plane can land.
      * \return Perpendicular deviation from ideal path.
@@ -164,75 +177,90 @@ private:    // functions
      * \brief Check if plane is in a certain area behind the ship.
      * \return True if plane is in area where a landing approach is possible.
      */
-    bool check_planeNearHomePoint();
+    bool checkPlaneNearHomePoint();
+
     /*!
      * \brief Check if ship is in the landing corridor of the mission.
      * \return true if in landing corridor
      */
-    bool check_shipInLandingCorridor();
+    bool checkShipInLandingCorridor();
+
     /*!
      * \brief Check if the rate of the ship heading is greater than MAX_HDNG_RATE.
-     * \return true if okay
+     * \return True if okay
      */
-    bool check_shipHeadingRate();
+    bool checkShipHeadingRate();
+
     /*!
      * \brief Check if the difference of the ship heading to the mission heading
      * is greater than MAX_HDNG_DIFF.
-     * \return true if okay
+     * \return True if okay
      */
-    bool check_shipHeadingDifference();
+    bool checkShipHeadingDifference();
+
     /*!
      * \brief Check if the ship drove over the last wp of the landing mission.
-     * \return true if okay
+     * \return True if okay
      */
-    bool check_shipDroveOverLastWP();
+    bool checkShipDroveOverLastWP();
+
     /*!
      * \brief Check if the distance ship to plane is greater than MAX_DISTANCE.
-     * \return true if okay
+     * \return True if okay
      */
-    bool check_maxDistShipToPlane();
+    bool checkMaxDistShipToPlane();
 
 public slots:
+
     /*!
      * \brief Reaction to init the landing. Called by UI.
      */
     Q_INVOKABLE void landingInit();
+
     /*!
      * \brief Reaction to start the landing. Called by UI.
      */
     Q_INVOKABLE void landingStart();
+
     /*!
      * \brief Reaction to cancel the Landing. Called by UI.
      */
     Q_INVOKABLE void landingCancel();
 
 private slots:
+
     /*!
      * \brief Send the loiter point behind ship as home.
      */
-    void send_homePoint();
+    void sendHomePoint();
+
     /*!
      * \brief GoTo the fallback point.
      */
-    void send_fallbackGoAround();
+    void sendFallbackGoAround();
+
     /*!
      * \brief Build and send the landing mission.
      */
-    void send_landMission();
+    void sendLandMission();
+
     /*!
      * \brief Build and send the landing geofence.
      */
-    void send_geofence();
+    void sendGeofence();
 
     /*!
-     * \brief Observe ship heading, ship position relative to wp2 (in front of ship). Send mission if needed.
+     * \brief Observe ship heading, ship position relative to wp2 (in front of ship).
+     * Send mission if needed.
      */
-    void observe_state();
+    void observeState();
 
     /*!
      * \brief Called when the plane moved. Update the saved location and heading.
      */
-    void update_posShip(QGeoPositionInfo update);
+    void updatePosShip(QGeoPositionInfo update);
 };
 
-#endif // ShipLANDING_H
+#endif // SHIPLANDING_H
+
+//-EOF--------------------------------------------------------------------------------------------//
