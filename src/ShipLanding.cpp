@@ -351,7 +351,7 @@ void ShipLanding::landingCancel()
 
 void ShipLanding::sendHomePoint()
 {
-    qCDebug(ShipLandingLog) << "send_homePoint: Send the home point.";
+    qCDebug(ShipLandingLog) << "sendHomePoint: Send the home point.";
 
     if(_vehicle)
     {
@@ -368,9 +368,16 @@ void ShipLanding::sendHomePoint()
     return;
 }
 
+void ShipLanding::sendHomeGoto()
+{
+    qCDebug(ShipLandingLog) << "sendHomeGoto: Send the home goto point.";
+    _vehicle->guidedModeGotoLocation(calcPosRelativeToShip(WPLIST_DIST.at(0), WPLIST_ALT.at(0)));
+    return;
+}
+
 void ShipLanding::sendFallbackGoAround()
 {
-    qCDebug(ShipLandingLog) << "send_FallbackGoToPoint: Send the fallback goto point.";
+    qCDebug(ShipLandingLog) << "sendFallbackGoAround: Send the fallback goto point.";
     _vehicle->guidedModeGotoLocation
                               (calcPosRelativeToShip(GO_AROUND_DIST, GO_AROUND_ALT, GO_AROUND_HDG));
     return;
@@ -378,17 +385,17 @@ void ShipLanding::sendFallbackGoAround()
 
 void ShipLanding::sendGeofence()
 {
-    qCDebug(ShipLandingLog) << "send_geofence: Build and send the landing geofence.";
+    qCDebug(ShipLandingLog) << "sendGeofence: Build and send the landing geofence.";
 
     // If Geofence breached -> ReturnMode (GF_ACTION: 3, see Checklist Failure)
     QmlObjectListModel polygons, circles;
     QGCFencePolygon polygon = new QGCFencePolygon(true);
     QGeoCoordinate breach;
-    polygon.appendVertex(calcPosRelativeToShip(fabs(WPLIST_DIST.back()*1.1), WPLIST_ALT.at(1),
+    polygon.appendVertex(calcPosRelativeToShip(fabs(WPLIST_DIST.back()*1.25), WPLIST_ALT.at(1),
                                                GEOFENCE_ANGLE_NET));
-    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE*1.1, WPLIST_ALT.at(0),
+    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE*1.25, WPLIST_ALT.at(0),
                                                GEOFENCE_ANGLE_LOITER));
-    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE*1.1, WPLIST_ALT.at(0),
+    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE*1.25, WPLIST_ALT.at(0),
                                                -GEOFENCE_ANGLE_LOITER));
     polygons.insert(0, &polygon);
     _vehicle->geoFenceManager()->sendToVehicle(breach, polygons, circles);
@@ -398,7 +405,7 @@ void ShipLanding::sendGeofence()
 
 void ShipLanding::sendLandMission()
 {
-    qCDebug(ShipLandingLog) << "send_landMission: Build and send the landing mission.";
+    qCDebug(ShipLandingLog) << "sendLandMission: Build and send the landing mission.";
     QList<QGeoCoordinate> wp;
     for (int i=1; i<WPLIST_DIST.count(); i++)
         wp.push_back(calcPosRelativeToShip(WPLIST_DIST.at(i), WPLIST_ALT.at(i)));
@@ -445,21 +452,17 @@ void ShipLanding::observeState()
             qCDebug(ShipLandingLog) << "observeState: MISSION";
             if (landReq == true)
                 state = LAND_REQ;
-            //TODO: Order of operation correct? Add () for clarification!
-            else if(_vehicle->missionManager()->currentIndex()
-                    >= _vehicle->missionManager()->PlanManager::missionItems().count() - 1
-                    || _vehicle->flightMode().compare(_vehicle->rtlFlightMode(), Qt::CaseInsensitive)
-                    == 0)
+            else if((_vehicle->missionManager()->currentIndex()
+                    >= _vehicle->missionManager()->PlanManager::missionItems().count() - 1)
+                    || (_vehicle->flightMode().compare(_vehicle->rtlFlightMode(), Qt::CaseInsensitive)
+                    == 0))
                 state = RETURN;
             break;
 
         case RETURN:
             qCDebug(ShipLandingLog) << "observeState: RETURN";
-            //TODO: Order of operation correct? Add () for clarification!
-            if (!checkMaxDistShipToPlane()
-                   && _vehicle->flightMode().compare(_vehicle->rtlFlightMode(), Qt::CaseInsensitive)
-                   != 0)
-                _vehicle->guidedModeRTL();
+            if (!checkMaxDistShipToPlane())
+                sendHomeGoto();
             if (landReq)
                 state = LAND_REQ;
             break;
@@ -467,7 +470,7 @@ void ShipLanding::observeState()
         case LAND_REQ:
             qCDebug(ShipLandingLog) << "observeState: LAND_REQ";
             if (!checkMaxDistShipToPlane())
-                _vehicle->guidedModeRTL();
+                sendHomeGoto();
             if (landCancel)
                 state = RETURN;
             else if (checkPlaneNearHomePoint() && checkShipHeadingRate())
@@ -477,7 +480,7 @@ void ShipLanding::observeState()
         case LAND_SEND:
             qCDebug(ShipLandingLog) << "observeState: LAND_SEND";
             sendLandMission();
-            //send_geofence(); TODO
+            sendGeofence();
             _vehicle->startMission();
             if (landCancel)
                 state = RETURN;
@@ -549,6 +552,8 @@ void ShipLanding::updatePosShip(QGeoPositionInfo update)
 
     // Transfer GPS data to struct
     ship.coord = update.coordinate();
+    if (update.hasAttribute(update.Direction))
+        ship.dir = update.attribute(update.Direction);
 
    /*
     * Calculate heading. TODO: Replace by values from GPS sensor.

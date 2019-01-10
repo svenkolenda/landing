@@ -56,14 +56,10 @@ void SimulatedShipPosition::updatePosition()
         if (fabs(last_change) > 0.2 || fabs(change) < 0.1)
         {
             change = 0.0;
-            qDebug() << "Kurs gerade";
             max = 120;  // 120s = 2min
         }
         else
-        {
             max = (qrand()%3 + 1) * 5;  // 5s, 10s, 15s
-            qDebug() << "Kurve: " << change << ", " << max;
-        }
         i = 0;
     }
     if (heading < 0)

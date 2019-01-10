@@ -235,6 +235,11 @@ private slots:
     void sendHomePoint();
 
     /*!
+     * \brief GoTo the home point.
+     */
+    void sendHomeGoto();
+
+    /*!
      * \brief GoTo the fallback point.
      */
     void sendFallbackGoAround();
