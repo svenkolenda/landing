@@ -21,7 +21,7 @@ const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1}); //!< Acceptance rad
 // Geofence
 const double GEOFENCE_ANGLE_NET     = 180;                   //!< Geofence angle in front of ship
 const double GEOFENCE_ANGLE_LOITER  = 25;                    //!< Geofence angle behind ship
-const int GEOFENCE_MULTIPLY_DIST    = 1.5;                     //!< Multiplication factor of distances
+const int GEOFENCE_MULTIPLY_DIST    = 2.0;                     //!< Multiplication factor of distances
 
 // Fallback Go-Around parameter
 const double GO_AROUND_DIST         = -100;                  //!< Distance plane to ship
@@ -491,7 +491,7 @@ void ShipLanding::observeState()
 
         case LAND_APPROACH:
             qCDebug(ShipLandingLog) << "observeState: LAND_APPROACH";
-            if (!checkShipInLandingCorridor() || checkShipHeadingDifference())
+            if (!checkShipInLandingCorridor() || !checkShipHeadingDifference())
             {
                 double dist = ship.coord.distanceTo(_vehicle->coordinate());
                 if (dist > FALLBACK_DIST.at(0))
@@ -505,7 +505,7 @@ void ShipLanding::observeState()
             }
             else if (landCancel)
                 state = RETURN;
-            else if (checkShipDroveOverLastWP())
+            else if (!checkShipDroveOverLastWP())
                 state = FALLBACK_RESTART_APPROACH;
             break;
 

@@ -47,7 +47,7 @@ void SimulatedShipPosition::requestUpdate(int /*timeout*/)
 
 void SimulatedShipPosition::updatePosition()
 {
-    static double heading = 180.0, change = 0.0, last_change = 0.0;
+    static double heading = 45.0, change = 0.0, last_change = 0.0;
     static int i = 0, max = 10;
     if (i++ == max)
     {
