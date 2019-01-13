@@ -15,7 +15,7 @@ const QList<int> TMR_INTVL({30, 15, 10, 5, 5, 2, 1, 1, 1, 1});   //!< Timer inte
 
 // WP-List 0: Loiter, 1: DownToAlt, 2: WP behind ship, 3: WP in front of ship
 const QList<double> WPLIST_DIST({400, 300, 100, -100});      //!< Distance plane to ship
-const QList<unsigned int> WPLIST_ALT({50, 15, 7, 5});        //!< Altitude (relative)
+const QList<unsigned int> WPLIST_ALT({50, 15, 5, 5});        //!< Altitude (relative)
 const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1}); //!< Acceptance radius for the waypoint
 
 // Geofence
