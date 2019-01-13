@@ -14,18 +14,18 @@ QGC_LOGGING_CATEGORY(ShipLandingLog, "ShipLandingLog")
 const QList<int> TMR_INTVL({30, 15, 10, 5, 5, 2, 1, 1, 1, 1});   //!< Timer intervall list of state
 
 // WP-List 0: Loiter, 1: DownToAlt, 2: WP behind ship, 3: WP in front of ship
-const QList<double> WPLIST_DIST({400, 300, 100, -100});      //!< Distance plane to ship
-const QList<unsigned int> WPLIST_ALT({50, 15, 5, 5});        //!< Altitude (relative)
-const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1}); //!< Acceptance radius for the waypoint
+const QList<double> WPLIST_DIST({400, 300, 100, -100, -200});   //!< Distance plane to ship
+const QList<unsigned int> WPLIST_ALT({3, 15, 5, 5, 5});          //!< Altitude (absolute)
+const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1});    //!< Acceptance radius for the waypoint
 
 // Geofence
 const double GEOFENCE_ANGLE_NET     = 180;                   //!< Geofence angle in front of ship
 const double GEOFENCE_ANGLE_LOITER  = 25;                    //!< Geofence angle behind ship
-const int GEOFENCE_MULTIPLY_DIST    = 2.0;                     //!< Multiplication factor of distances
+const double GEOFENCE_MULTIPLY_DIST = 2.0;                   //!< Multiplication factor of distances
 
 // Fallback Go-Around parameter
 const double GO_AROUND_DIST         = -100;                  //!< Distance plane to ship
-const unsigned int GO_AROUND_ALT    = 200;                   //!< Altitude (relative)
+const unsigned int GO_AROUND_ALT    = 200;                   //!< Altitude (absolute)
 const int GO_AROUND_HDG             = 45;                    //!< Heading relative to ship
 
 // Fallback distance
@@ -35,9 +35,9 @@ const QList<int>FALLBACK_DIST({75, 50, 25, 10});             //!< Fallback dista
 const double MAX_DISTANCE   = 500;                      //!< Maximum distance plane to ship
 const int    MAX_HOR_DIST   = 150;                      //!< Maximum horizontal distance to ship for
                                                         //!< start of landing approach
-const int    MAX_VERT_DIST  = -int(MAX_DISTANCE);       //!< Maximum vertical distance to ship for
+const int    MAX_VERT_DIST  = int(MAX_DISTANCE);        //!< Maximum vertical distance to ship for
                                                         //!< start of landing approach
-const int    MIN_VERT_DIST  = -int(WPLIST_DIST.at(0));  //!< Minimum vertical distance to ship for
+const int    MIN_VERT_DIST  = int(WPLIST_DIST.at(1));   //!< Minimum vertical distance to ship for
                                                         //!< start of landing approach
 
 // Calculation parameters for distance vs coordinates
@@ -512,6 +512,7 @@ void ShipLanding::observeState()
 
         case FALLBACK_RESTART_APPROACH:
             qCDebug(ShipLandingLog) << "observeState: FALLBACK_RESTART_APPROACH";
+            sendHomeGoto();
             state = LAND_SEND;
             break;
 
