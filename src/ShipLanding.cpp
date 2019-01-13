@@ -15,12 +15,13 @@ const QList<int> TMR_INTVL({30, 15, 10, 5, 5, 2, 1, 1, 1, 1});   //!< Timer inte
 
 // WP-List 0: Loiter, 1: DownToAlt, 2: WP behind ship, 3: WP in front of ship
 const QList<double> WPLIST_DIST({400, 300, 100, -100});      //!< Distance plane to ship
-const QList<unsigned int> WPLIST_ALT({50, 15, 5, 5});        //!< Altitude (relative)
+const QList<unsigned int> WPLIST_ALT({50, 15, 7, 5});        //!< Altitude (relative)
 const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1}); //!< Acceptance radius for the waypoint
 
 // Geofence
 const double GEOFENCE_ANGLE_NET     = 180;                   //!< Geofence angle in front of ship
 const double GEOFENCE_ANGLE_LOITER  = 25;                    //!< Geofence angle behind ship
+const int GEOFENCE_MULTIPLY_DIST    = 1.5;                     //!< Multiplication factor of distances
 
 // Fallback Go-Around parameter
 const double GO_AROUND_DIST         = -100;                  //!< Distance plane to ship
@@ -391,12 +392,12 @@ void ShipLanding::sendGeofence()
     QmlObjectListModel polygons, circles;
     QGCFencePolygon polygon = new QGCFencePolygon(true);
     QGeoCoordinate breach;
-    polygon.appendVertex(calcPosRelativeToShip(fabs(WPLIST_DIST.back()*1.25), WPLIST_ALT.at(1),
-                                               GEOFENCE_ANGLE_NET));
-    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE*1.25, WPLIST_ALT.at(0),
-                                               GEOFENCE_ANGLE_LOITER));
-    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE*1.25, WPLIST_ALT.at(0),
-                                               -GEOFENCE_ANGLE_LOITER));
+    polygon.appendVertex(calcPosRelativeToShip(fabs(WPLIST_DIST.back()*GEOFENCE_MULTIPLY_DIST),
+                                               WPLIST_ALT.at(1), GEOFENCE_ANGLE_NET));
+    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE*GEOFENCE_MULTIPLY_DIST,
+                                               WPLIST_ALT.at(0), GEOFENCE_ANGLE_LOITER));
+    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE*GEOFENCE_MULTIPLY_DIST,
+                                               WPLIST_ALT.at(0), -GEOFENCE_ANGLE_LOITER));
     polygons.insert(0, &polygon);
     _vehicle->geoFenceManager()->sendToVehicle(breach, polygons, circles);
 
@@ -407,18 +408,18 @@ void ShipLanding::sendLandMission()
 {
     qCDebug(ShipLandingLog) << "sendLandMission: Build and send the landing mission.";
     QList<QGeoCoordinate> wp;
-    for (int i=1; i<WPLIST_DIST.count(); i++)
+    for (int i=0; i<WPLIST_DIST.count(); i++)
         wp.push_back(calcPosRelativeToShip(WPLIST_DIST.at(i), WPLIST_ALT.at(i)));
     qCDebug(ShipLandingLog) << "landSend: WP-List=" << wp;
 
     // Convert waypoints into MissionItems
     QList<MissionItem*> landingItems;
-    for (int i=1; i<wp.count(); i++)
+    for (int i=0; i<wp.count(); i++)
     {
         landingItems.push_back
                 (new MissionItem(i,                                     // sequence number
                                  MAV_CMD_NAV_WAYPOINT,                  // command
-                                 MAV_FRAME_GLOBAL_RELATIVE_ALT,         // frame
+                                 MAV_FRAME_GLOBAL_INT,                  // frame
                                  0,                                     // param1 hold time
                                  WPLIST_ACCEPT_RAD.at(i),               // param2 acceptance radius
                                  0,                                     // param3 pass trough

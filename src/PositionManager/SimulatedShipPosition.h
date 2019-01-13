@@ -11,7 +11,7 @@
 #include "QGCToolbox.h"
 
 // SeaWatch3: avg: 7knots, max 8.1knots
-const int LAT_LON_MOV = 500; //!< max movement
+const int LAT_LON_MOV = 300; //!< max movement
 
 class SimulatedShipPosition : public QGeoPositionInfoSource
 {
