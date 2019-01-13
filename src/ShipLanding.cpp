@@ -482,6 +482,7 @@ void ShipLanding::observeState()
             qCDebug(ShipLandingLog) << "observeState: LAND_SEND";
             sendLandMission();
             sendGeofence();
+            dir_miss = ship.dir;
             _vehicle->startMission();
             if (landCancel)
                 state = RETURN;
