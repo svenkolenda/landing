@@ -14,7 +14,7 @@ QGC_LOGGING_CATEGORY(ShipLandingLog, "ShipLandingLog")
 const QList<int> TMR_INTVL({30, 15, 10, 5, 5, 2, 1, 1, 1, 1});   //!< Timer intervall list of state
 
 // WP-List 0: Loiter, 1: DownToAlt, 2: WP behind ship, 3: WP in front of ship
-const QList<double> WPLIST_DIST({800, 600, 100, -300, -400});   //!< Distance plane to ship
+const QList<double> WPLIST_DIST({800, 600, 100, -500, -600});   //!< Distance plane to ship
 const QList<unsigned int> WPLIST_ALT({3, 15, 5, 5, 5});          //!< Altitude (absolute)
 const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1, 1});    //!< Acceptance radius for the waypoint
 
@@ -34,8 +34,8 @@ const QList<int>FALLBACK_DIST({100, 50, 25, 10});             //!< Fallback dist
 // Max and min distances
 const double MAX_DIST_PLANE_SHIP = 1000;                //!< Maximum distance plane to ship
 const double MIN_DIST_PLANE_SHIP = 600;
-const double MIN_DIST_SHIP_WP       = 42;               //!< Minimum distance ship to last wp
-const int MAX_HOR_DIST   = 5;                         //!< Maximum horizontal distance of ship to
+const double MIN_DIST_SHIP_WP    = 42;                  //!< Minimum distance ship to last wp
+const int MAX_HOR_DIST   = 5;                           //!< Maximum horizontal distance of ship to
                                                         //!< mission trajectorie
 const int MAX_DIST_HOME_POS = 100;                      //!< Maximum distance plane to home point
 
@@ -498,7 +498,10 @@ void ShipLanding::observeState()
             sendLandMission(idx);
             dir_miss = ship.dir;
             qCDebug(ShipLandingLog) << "observeState: dir_miss=" << dir_miss;
+            // Continue mission from waypoint idx, currently not available.
+            // Mission always starts at index 1.
             _vehicle->startMission();
+            // _vehicle->setCurrentMissionSequence(idx+1); no effect (timing?)
             state = LAND_APPROACH;
             break;
 
