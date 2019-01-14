@@ -215,7 +215,7 @@ private:    // functions
      * \brief Check if the distance ship to plane is greater than MAX_DISTANCE.
      * \return True if okay
      */
-    bool checkMaxDistShipToHome();
+    bool checkDistShipToHome();
 
 public slots:
 

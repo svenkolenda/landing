@@ -32,14 +32,12 @@ const int GO_AROUND_HDG             = 45;                    //!< Heading relati
 const QList<int>FALLBACK_DIST({100, 50, 25, 10});             //!< Fallback distances plane to ship
 
 // Max and min distances
-const double MAX_DISTANCE   = 1000;                      //!< Maximum distance plane to ship
-const double MIN_DISTANCE   = 42;                       //!< Minimum distance ship to last wp
-const int    MAX_HOR_DIST   = 150;                      //!< Maximum horizontal distance to ship for
-                                                        //!< start of landing approach
-const int    MAX_VERT_DIST  = int(MAX_DISTANCE);        //!< Maximum vertical distance to ship for
-                                                        //!< start of landing approach
-const int    MIN_VERT_DIST  = int(WPLIST_DIST.at(1));   //!< Minimum vertical distance to ship for
-                                                        //!< start of landing approach
+const double MAX_DIST_PLANE_SHIP = 1000;                //!< Maximum distance plane to ship
+const double MIN_DIST_PLANE_SHIP = 600;
+const double MIN_DIST_SHIP_WP       = 42;               //!< Minimum distance ship to last wp
+const int MAX_HOR_DIST   = 5;                         //!< Maximum horizontal distance of ship to
+                                                        //!< mission trajectorie
+const int MAX_DIST_HOME_POS = 100;                      //!< Maximum distance plane to home point
 
 // Calculation parameters for distance vs coordinates
 const unsigned int GAP_LATITUDE = 111300;               //!< Gap between circles of latitude
@@ -47,10 +45,10 @@ const double DEGREE_TO_RAD      = M_PI / 180;           //!< Conversion degree t
 
 // Cartesian Coordinate System: x-axis with 0 degree going counterclockwise
 // Heading System: NORTH (y-axis) with 0 degress going clockwise
-const double HEADING_WEIGHT     = 0.1;                      //!< Heading weight
-const int HEADING_HIS_SIZE      = 10;                       //!< Heading history size
+const double HDNG_WEIGHT     = 0.1;                         //!< Heading weight
+const int HDNG_HIS_SIZE      = 10;                          //!< Heading history size
 const int NORTH = 0, EAST = 90, SOUTH = 180, WEST = 270;    //!< Heading angles
-const int MAX_HDNG_DIFF         = 5;                       //!< Maximum acceptable heading
+const int MAX_HDNG_DIFF         = 5;                        //!< Maximum acceptable heading
                                                             //!< difference
 const int MAX_HDNG_RATE         = 2;                        //!< Maximum acceptable heading change
                                                             //!< in degrees per second
@@ -266,29 +264,23 @@ double ShipLanding::calcShipPosDif()
 
 bool ShipLanding::checkPlaneNearHomePoint()
 {
-    if (_vehicle->coordinate().distanceTo(ship.coord) > MAX_DISTANCE ||
-            _vehicle->coordinate().distanceTo(ship.coord) < WPLIST_DIST.at(1))
+    if (_vehicle->coordinate().distanceTo(_vehicle->homePosition()) > MAX_DIST_HOME_POS)
         return false;
     else return true;
 }
 
 bool ShipLanding::checkShipInLandingCorridor()
 {
-    // Calculate distance of plane relative to ship
+    // Calculate horizontal distance of ship relative to mission trajectorie,
+    // here waypoint 3 as referrenced object.
     _Distance distance =
         calcDistanceRelativeTo(ship.coord.longitude(), ship.coord.latitude(),
                                ship.dir,
-                               _vehicle->coordinate().longitude(),
-                               _vehicle->coordinate().latitude());
+                               wp.at(3).longitude(),
+                               wp.at(3).latitude());
 
-   /*
-    * If the plane isn't in a specific window behind the ship, don't try to land!
-    * The < and > are correct the way they are. This is because the vertical distance to ship
-    * should be negative. Smaller than MAX_VERT_DIST means further away from the ship, greater than
-    * MIN_VERT_DIST means too close to the ship.
-    */
-    if (fabs(distance.horizontal_distance) > MAX_HOR_DIST ||
-           distance.vertical_distance < MAX_VERT_DIST || distance.vertical_distance > MIN_VERT_DIST)
+    // Check if the ship ist still in landing corridor.
+    if (distance.horizontal_distance > MAX_HOR_DIST)
         return false;
     else
         return true;
@@ -312,21 +304,22 @@ bool ShipLanding::checkShipDroveOverLastWP()
 {
     // Ship passes last wp formerly in front of ship TODO
     qCDebug(ShipLandingLog) << "lastWP:" << ship.coord.distanceTo(wp.at(3));
-    if (ship.coord.distanceTo(wp.at(3)) < MIN_DISTANCE)
+    if (ship.coord.distanceTo(wp.at(3)) < MIN_DIST_SHIP_WP)
         return false;
     else return true;
 }
 
 bool ShipLanding::checkMaxDistShipToPlane()
 {
-    if (ship.coord.distanceTo(_vehicle->coordinate()) > MAX_DISTANCE)
+    if (ship.coord.distanceTo(_vehicle->coordinate()) > MAX_DIST_PLANE_SHIP)
         return false;
     else return true;
 }
 
-bool ShipLanding::checkMaxDistShipToHome()
+bool ShipLanding::checkDistShipToHome()
 {
-    if (ship.coord.distanceTo(_vehicle->homePosition()) > MAX_DISTANCE)
+    if (ship.coord.distanceTo(_vehicle->homePosition()) > MAX_DIST_PLANE_SHIP ||
+        ship.coord.distanceTo(_vehicle->homePosition()) < MIN_DIST_PLANE_SHIP)
         return false;
     else return true;
 }
@@ -383,7 +376,7 @@ void ShipLanding::sendHomePoint()
 void ShipLanding::sendHomeGoto()
 {
     qCDebug(ShipLandingLog) << "sendHomeGoto: Send the home goto point.";
-    _vehicle->guidedModeGotoLocation(calcPosRelativeToShip(WPLIST_DIST.at(0), WPLIST_ALT.at(0)));
+    _vehicle->guidedModeGotoLocation(_vehicle->homePosition());
     return;
 }
 
@@ -405,9 +398,9 @@ void ShipLanding::sendGeofence()
     QGeoCoordinate breach;
     polygon.appendVertex(calcPosRelativeToShip(fabs(WPLIST_DIST.back()*GEOFENCE_MULTIPLY_DIST),
                                                WPLIST_ALT.at(1), GEOFENCE_ANGLE_NET));
-    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE*GEOFENCE_MULTIPLY_DIST,
+    polygon.appendVertex(calcPosRelativeToShip(MAX_DIST_PLANE_SHIP*GEOFENCE_MULTIPLY_DIST,
                                                WPLIST_ALT.at(0), GEOFENCE_ANGLE_LOITER));
-    polygon.appendVertex(calcPosRelativeToShip(MAX_DISTANCE*GEOFENCE_MULTIPLY_DIST,
+    polygon.appendVertex(calcPosRelativeToShip(MAX_DIST_PLANE_SHIP*GEOFENCE_MULTIPLY_DIST,
                                                WPLIST_ALT.at(0), -GEOFENCE_ANGLE_LOITER));
     polygons.insert(0, &polygon);
     _vehicle->geoFenceManager()->sendToVehicle(breach, polygons, circles);
@@ -440,8 +433,8 @@ void ShipLanding::sendLandMission(int idx)
                                  wp.at(i).altitude(),                   // param7 altitude
                                  true,                                  // autoContinue
                                  i == idx));                            // is current Item
-        qCDebug(ShipLandingLog) << "landSend: " << i << "=" << landingItems.back();
     }
+    qCDebug(ShipLandingLog) << "landSend: landingItems=" << landingItems << ", idx=" << idx;
     _vehicle->missionManager()->writeMissionItems(landingItems);
 
     return;
@@ -451,8 +444,13 @@ void ShipLanding::observeState()
 {
     static int idx = 1;
 
-    if (state != IDLE && !checkMaxDistShipToHome())
-        sendHomePoint();
+    if (!checkDistShipToHome())
+    {
+        if (state != IDLE)
+            sendHomePoint();
+        if (state == RETURN || state == LAND_REQ)
+            sendHomeGoto();
+    }
 
     switch (state)
     {
@@ -499,19 +497,19 @@ void ShipLanding::observeState()
             sendGeofence();
             sendLandMission(idx);
             dir_miss = ship.dir;
+            qCDebug(ShipLandingLog) << "observeState: dir_miss=" << dir_miss;
             _vehicle->startMission();
-            if (landCancel)
-                state = RETURN;
-            else
-                state = LAND_APPROACH;
+            state = LAND_APPROACH;
             break;
 
         case LAND_APPROACH:
             qCDebug(ShipLandingLog) << "observeState: LAND_APPROACH";
-            if (/*!checkShipInLandingCorridor() ||*/ !checkShipHeadingDifference())
+            if (landCancel)
+                state = RETURN;
+            else if (!checkShipInLandingCorridor() || !checkShipHeadingDifference())
             {
                 double dist = ship.coord.distanceTo(_vehicle->coordinate());
-                qCDebug(ShipLandingLog) << "dist:" << dist;
+                qCDebug(ShipLandingLog) << "observeState: dist=" << dist;
                 if (dist > FALLBACK_DIST.at(0))
                     state = FALLBACK_RESTART_APPROACH;
                 else if (dist > FALLBACK_DIST.at(1))
@@ -521,8 +519,6 @@ void ShipLanding::observeState()
                 else if (dist > FALLBACK_DIST.at(3))
                     state = FALLBACK_PNR;
             }
-            else if (landCancel)
-                state = RETURN;
             else if (!checkShipDroveOverLastWP())
                 state = FALLBACK_RESTART_APPROACH;
             break;
@@ -613,12 +609,12 @@ void ShipLanding::updatePosShip(QGeoPositionInfo update)
                 new_dir = WEST - alpha;
         }
 
-        ship.dir = ship.dir + (HEADING_WEIGHT * (new_dir - ship.dir));
+        ship.dir = ship.dir + (HDNG_WEIGHT * (new_dir - ship.dir));
 
         // Put new direction in history queue
         _Heading new_entry = {ship.dir, update.timestamp()};
         ship.hdng_his.push_back(new_entry);
-        if (ship.hdng_his.size() > HEADING_HIS_SIZE)
+        if (ship.hdng_his.size() > HDNG_HIS_SIZE)
             ship.hdng_his.pop_front();
 
     }
