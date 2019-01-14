@@ -14,7 +14,7 @@ QGC_LOGGING_CATEGORY(ShipLandingLog, "ShipLandingLog")
 const QList<int> TMR_INTVL({30, 15, 10, 5, 5, 2, 1, 1, 1, 1});   //!< Timer intervall list of state
 
 // WP-List 0: Loiter, 1: DownToAlt, 2: WP behind ship, 3: WP in front of ship
-const QList<double> WPLIST_DIST({400, 300, 100, -100, -200});   //!< Distance plane to ship
+const QList<double> WPLIST_DIST({800, 600, 200, -200, -400});   //!< Distance plane to ship
 const QList<unsigned int> WPLIST_ALT({3, 15, 5, 5, 5});          //!< Altitude (absolute)
 const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1, 1});    //!< Acceptance radius for the waypoint
 
@@ -29,11 +29,11 @@ const unsigned int GO_AROUND_ALT    = 200;                   //!< Altitude (abso
 const int GO_AROUND_HDG             = 45;                    //!< Heading relative to ship
 
 // Fallback distance
-const QList<int>FALLBACK_DIST({75, 50, 25, 10});             //!< Fallback distances plane to ship
+const QList<int>FALLBACK_DIST({150, 100, 50, 20});             //!< Fallback distances plane to ship
 
 // Max and min distances
-const double MAX_DISTANCE   = 500;                      //!< Maximum distance plane to ship
-const double MIN_DISTANCE   = 10;                       //!< Minimum distance ship to last wp
+const double MAX_DISTANCE   = 1000;                      //!< Maximum distance plane to ship
+const double MIN_DISTANCE   = 50;                       //!< Minimum distance ship to last wp
 const int    MAX_HOR_DIST   = 150;                      //!< Maximum horizontal distance to ship for
                                                         //!< start of landing approach
 const int    MAX_VERT_DIST  = int(MAX_DISTANCE);        //!< Maximum vertical distance to ship for
@@ -311,7 +311,8 @@ bool ShipLanding::checkShipHeadingDifference()
 bool ShipLanding::checkShipDroveOverLastWP()
 {
     // Ship passes last wp formerly in front of ship TODO
-    if (ship.coord.distanceTo(wp.at(4)) < MIN_DISTANCE)
+    qCDebug(ShipLandingLog) << "lastWP:" << ship.coord.distanceTo(wp.at(3));
+    if (ship.coord.distanceTo(wp.at(3)) < MIN_DISTANCE)
         return false;
     else return true;
 }
@@ -438,7 +439,8 @@ void ShipLanding::sendLandMission()
                                  wp.at(i).longitude(),                  // param6 longitude
                                  wp.at(i).altitude(),                   // param7 altitude
                                  true,                                  // autoContinue
-                                 i==1));                                // is current Item
+                                 i ==_vehicle->missionManager()->currentIndex() ||
+                                 (_vehicle->missionManager()->currentIndex() > 5 && i==1)));    // is current Item
         qCDebug(ShipLandingLog) << "landSend: " << i << "=" << landingItems.back();
     }
     _vehicle->missionManager()->writeMissionItems(landingItems);
@@ -567,51 +569,53 @@ void ShipLanding::updatePosShip(QGeoPositionInfo update)
     ship.coord = update.coordinate();
     if (update.hasAttribute(update.Direction))
         ship.dir = update.attribute(update.Direction);
+    else {
 
-   /*
-    * Calculate heading. TODO: Replace by values from GPS sensor.
-    * Idea: Start heading with 0 degrees.
-    * Afterwards, calculate a heading from old and new GPS.
-    * Add this heading to the new one, but weighed in with a factor.
-    * Please note that this won't work at 180 degrees longitude, but we are at mediteranian sea and
-    * this is supposed to be a workaround anyway, so I won't bother building this to work at 180
-    * degrees.
-    */
-    double alpha;   // Alpha shows the angle in a normal coordinate system.
-    double new_dir; // New direction.
+       /*
+        * Calculate heading. TODO: Replace by values from GPS sensor.
+        * Idea: Start heading with 0 degrees.
+        * Afterwards, calculate a heading from old and new GPS.
+        * Add this heading to the new one, but weighed in with a factor.
+        * Please note that this won't work at 180 degrees longitude, but we are at mediteranian sea and
+        * this is supposed to be a workaround anyway, so I won't bother building this to work at 180
+        * degrees.
+        */
+        double alpha;   // Alpha shows the angle in a normal coordinate system.
+        double new_dir; // New direction.
 
-    // Check for  0 degree and 180 degree (see definition of atan!)
-    if (ship.coord.longitude() == old_ship_pos.longitude())
-    {
-        // Heading didn't change
-        if (ship.coord.latitude() == old_ship_pos.latitude())
-            new_dir = ship.dir;
-        else if (ship.coord.latitude() > old_ship_pos.latitude())
-            new_dir = NORTH;    // 0 degrees
+        // Check for  0 degree and 180 degree (see definition of atan!)
+        if (ship.coord.longitude() == old_ship_pos.longitude())
+        {
+            // Heading didn't change
+            if (ship.coord.latitude() == old_ship_pos.latitude())
+                new_dir = ship.dir;
+            else if (ship.coord.latitude() > old_ship_pos.latitude())
+                new_dir = NORTH;    // 0 degrees
+            else
+                new_dir = SOUTH;    // 180 degrees
+        }
         else
-            new_dir = SOUTH;    // 180 degrees
+        {
+            alpha = atan((ship.coord.latitude() - old_ship_pos.latitude())/
+                         (ship.coord.longitude() - old_ship_pos.longitude()));
+
+            // alpha > 0 means 1. quadrant, alpha < 0 means 2. quadrant
+            if (ship.coord.longitude() > old_ship_pos.longitude())
+                new_dir = EAST - alpha;
+            // alpha > 0 means 3. quadrant, alpha < 0 means 4. quadrant
+            else
+                new_dir = WEST - alpha;
+        }
+
+        ship.dir = ship.dir + (HEADING_WEIGHT * (new_dir - ship.dir));
+
+        // Put new direction in history queue
+        _Heading new_entry = {ship.dir, update.timestamp()};
+        ship.hdng_his.push_back(new_entry);
+        if (ship.hdng_his.size() > HEADING_HIS_SIZE)
+            ship.hdng_his.pop_front();
+
     }
-    else
-    {
-        alpha = atan((ship.coord.latitude() - old_ship_pos.latitude())/
-                     (ship.coord.longitude() - old_ship_pos.longitude()));
-
-        // alpha > 0 means 1. quadrant, alpha < 0 means 2. quadrant
-        if (ship.coord.longitude() > old_ship_pos.longitude())
-            new_dir = EAST - alpha;
-        // alpha > 0 means 3. quadrant, alpha < 0 means 4. quadrant
-        else
-            new_dir = WEST - alpha;
-    }
-
-    ship.dir = ship.dir + (HEADING_WEIGHT * (new_dir - ship.dir));
-
-    // Put new direction in history queue
-    _Heading new_entry = {ship.dir, update.timestamp()};
-    ship.hdng_his.push_back(new_entry);
-    if (ship.hdng_his.size() > HEADING_HIS_SIZE)
-        ship.hdng_his.pop_front();
-
     return;
 }
 
