@@ -14,14 +14,14 @@ QGC_LOGGING_CATEGORY(ShipLandingLog, "ShipLandingLog")
 const QList<int> TMR_INTVL({30, 15, 10, 5, 5, 2, 1, 1, 1, 1});   //!< Timer intervall list of state
 
 // WP-List 0: Loiter, 1: DownToAlt, 2: WP behind ship, 3: WP in front of ship
-const QList<double> WPLIST_DIST({800, 600, 200, -200, -400});   //!< Distance plane to ship
+const QList<double> WPLIST_DIST({800, 600, 100, -300, -400});   //!< Distance plane to ship
 const QList<unsigned int> WPLIST_ALT({3, 15, 5, 5, 5});          //!< Altitude (absolute)
 const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1, 1});    //!< Acceptance radius for the waypoint
 
 // Geofence
 const double GEOFENCE_ANGLE_NET     = 180;                   //!< Geofence angle in front of ship
 const double GEOFENCE_ANGLE_LOITER  = 25;                    //!< Geofence angle behind ship
-const double GEOFENCE_MULTIPLY_DIST = 2.0;                   //!< Multiplication factor of distances
+const double GEOFENCE_MULTIPLY_DIST = 1.5;                   //!< Multiplication factor of distances
 
 // Fallback Go-Around parameter
 const double GO_AROUND_DIST         = -100;                  //!< Distance plane to ship
@@ -29,11 +29,11 @@ const unsigned int GO_AROUND_ALT    = 200;                   //!< Altitude (abso
 const int GO_AROUND_HDG             = 45;                    //!< Heading relative to ship
 
 // Fallback distance
-const QList<int>FALLBACK_DIST({150, 100, 50, 20});             //!< Fallback distances plane to ship
+const QList<int>FALLBACK_DIST({100, 50, 25, 10});             //!< Fallback distances plane to ship
 
 // Max and min distances
 const double MAX_DISTANCE   = 1000;                      //!< Maximum distance plane to ship
-const double MIN_DISTANCE   = 50;                       //!< Minimum distance ship to last wp
+const double MIN_DISTANCE   = 25;                       //!< Minimum distance ship to last wp
 const int    MAX_HOR_DIST   = 150;                      //!< Maximum horizontal distance to ship for
                                                         //!< start of landing approach
 const int    MAX_VERT_DIST  = int(MAX_DISTANCE);        //!< Maximum vertical distance to ship for
@@ -50,7 +50,7 @@ const double DEGREE_TO_RAD      = M_PI / 180;           //!< Conversion degree t
 const double HEADING_WEIGHT     = 0.1;                      //!< Heading weight
 const int HEADING_HIS_SIZE      = 10;                       //!< Heading history size
 const int NORTH = 0, EAST = 90, SOUTH = 180, WEST = 270;    //!< Heading angles
-const int MAX_HDNG_DIFF         = 10;                       //!< Maximum acceptable heading
+const int MAX_HDNG_DIFF         = 5;                       //!< Maximum acceptable heading
                                                             //!< difference
 const int MAX_HDNG_RATE         = 2;                        //!< Maximum acceptable heading change
                                                             //!< in degrees per second
@@ -415,7 +415,7 @@ void ShipLanding::sendGeofence()
     return;
 }
 
-void ShipLanding::sendLandMission()
+void ShipLanding::sendLandMission(int idx)
 {
     qCDebug(ShipLandingLog) << "sendLandMission: Build and send the landing mission.";
     wp.clear();
@@ -439,10 +439,10 @@ void ShipLanding::sendLandMission()
                                  wp.at(i).longitude(),                  // param6 longitude
                                  wp.at(i).altitude(),                   // param7 altitude
                                  true,                                  // autoContinue
-                                 i ==_vehicle->missionManager()->currentIndex() ||
-                                 (_vehicle->missionManager()->currentIndex() > 5 && i==1)));    // is current Item
+                                 i == idx));                            // is current Item
         qCDebug(ShipLandingLog) << "landSend: " << i << "=" << landingItems.back();
     }
+    qCDebug(ShipLandingLog) << "currentIdx:" << idx;
     _vehicle->missionManager()->writeMissionItems(landingItems);
 
     return;
@@ -450,6 +450,8 @@ void ShipLanding::sendLandMission()
 
 void ShipLanding::observeState()
 {
+    static int idx = 1;
+
     if (state != IDLE && !checkMaxDistShipToHome())
         sendHomePoint();
 
@@ -487,13 +489,16 @@ void ShipLanding::observeState()
             if (landCancel)
                 state = RETURN;
             else if (checkPlaneNearHomePoint() && checkShipHeadingRate())
+            {
                 state = LAND_SEND;
+                idx = 1;
+            }
             break;
 
         case LAND_SEND:
             qCDebug(ShipLandingLog) << "observeState: LAND_SEND";
-            sendLandMission();
             sendGeofence();
+            sendLandMission(idx);
             dir_miss = ship.dir;
             _vehicle->startMission();
             if (landCancel)
@@ -507,6 +512,7 @@ void ShipLanding::observeState()
             if (/*!checkShipInLandingCorridor() ||*/ !checkShipHeadingDifference())
             {
                 double dist = ship.coord.distanceTo(_vehicle->coordinate());
+                qCDebug(ShipLandingLog) << "dist:" << dist;
                 if (dist > FALLBACK_DIST.at(0))
                     state = FALLBACK_RESTART_APPROACH;
                 else if (dist > FALLBACK_DIST.at(1))
@@ -524,6 +530,7 @@ void ShipLanding::observeState()
 
         case FALLBACK_RESTART_APPROACH:
             qCDebug(ShipLandingLog) << "observeState: FALLBACK_RESTART_APPROACH";
+            idx = _vehicle->missionManager()->currentIndex() + 1;
             state = LAND_SEND;
             break;
 

@@ -254,7 +254,7 @@ private slots:
     /*!
      * \brief Build and send the landing mission.
      */
-    void sendLandMission();
+    void sendLandMission(int idx);
 
     /*!
      * \brief Build and send the landing geofence.
