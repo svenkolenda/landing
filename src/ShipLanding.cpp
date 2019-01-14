@@ -33,7 +33,7 @@ const QList<int>FALLBACK_DIST({100, 50, 25, 10});             //!< Fallback dist
 
 // Max and min distances
 const double MAX_DISTANCE   = 1000;                      //!< Maximum distance plane to ship
-const double MIN_DISTANCE   = 25;                       //!< Minimum distance ship to last wp
+const double MIN_DISTANCE   = 42;                       //!< Minimum distance ship to last wp
 const int    MAX_HOR_DIST   = 150;                      //!< Maximum horizontal distance to ship for
                                                         //!< start of landing approach
 const int    MAX_VERT_DIST  = int(MAX_DISTANCE);        //!< Maximum vertical distance to ship for
@@ -442,7 +442,6 @@ void ShipLanding::sendLandMission(int idx)
                                  i == idx));                            // is current Item
         qCDebug(ShipLandingLog) << "landSend: " << i << "=" << landingItems.back();
     }
-    qCDebug(ShipLandingLog) << "currentIdx:" << idx;
     _vehicle->missionManager()->writeMissionItems(landingItems);
 
     return;
