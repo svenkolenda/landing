@@ -16,7 +16,7 @@ const QList<int> TMR_INTVL({30, 15, 10, 5, 5, 2, 1, 1, 1, 1});   //!< Timer inte
 // WP-List 0: Loiter, 1: DownToAlt, 2: WP behind ship, 3: WP in front of ship
 const QList<double> WPLIST_DIST({400, 300, 100, -100, -200});   //!< Distance plane to ship
 const QList<unsigned int> WPLIST_ALT({3, 15, 5, 5, 5});          //!< Altitude (absolute)
-const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1});    //!< Acceptance radius for the waypoint
+const QList<unsigned int> WPLIST_ACCEPT_RAD({15, 10, 5, 1, 1});    //!< Acceptance radius for the waypoint
 
 // Geofence
 const double GEOFENCE_ANGLE_NET     = 180;                   //!< Geofence angle in front of ship
@@ -33,6 +33,7 @@ const QList<int>FALLBACK_DIST({75, 50, 25, 10});             //!< Fallback dista
 
 // Max and min distances
 const double MAX_DISTANCE   = 500;                      //!< Maximum distance plane to ship
+const double MIN_DISTANCE   = 10;                       //!< Minimum distance ship to last wp
 const int    MAX_HOR_DIST   = 150;                      //!< Maximum horizontal distance to ship for
                                                         //!< start of landing approach
 const int    MAX_VERT_DIST  = int(MAX_DISTANCE);        //!< Maximum vertical distance to ship for
@@ -310,12 +311,21 @@ bool ShipLanding::checkShipHeadingDifference()
 bool ShipLanding::checkShipDroveOverLastWP()
 {
     // Ship passes last wp formerly in front of ship TODO
-    return true;
+    if (ship.coord.distanceTo(wp.at(4)) < MIN_DISTANCE)
+        return false;
+    else return true;
 }
 
 bool ShipLanding::checkMaxDistShipToPlane()
 {
     if (ship.coord.distanceTo(_vehicle->coordinate()) > MAX_DISTANCE)
+        return false;
+    else return true;
+}
+
+bool ShipLanding::checkMaxDistShipToHome()
+{
+    if (ship.coord.distanceTo(_vehicle->homePosition()) > MAX_DISTANCE)
         return false;
     else return true;
 }
@@ -407,7 +417,7 @@ void ShipLanding::sendGeofence()
 void ShipLanding::sendLandMission()
 {
     qCDebug(ShipLandingLog) << "sendLandMission: Build and send the landing mission.";
-    QList<QGeoCoordinate> wp;
+    wp.clear();
     for (int i=0; i<WPLIST_DIST.count(); i++)
         wp.push_back(calcPosRelativeToShip(WPLIST_DIST.at(i), WPLIST_ALT.at(i)));
     qCDebug(ShipLandingLog) << "landSend: WP-List=" << wp;
@@ -438,7 +448,7 @@ void ShipLanding::sendLandMission()
 
 void ShipLanding::observeState()
 {
-    if (state != IDLE && !checkMaxDistShipToPlane())
+    if (state != IDLE && !checkMaxDistShipToHome())
         sendHomePoint();
 
     switch (state)
@@ -492,7 +502,7 @@ void ShipLanding::observeState()
 
         case LAND_APPROACH:
             qCDebug(ShipLandingLog) << "observeState: LAND_APPROACH";
-            if (!checkShipInLandingCorridor() || !checkShipHeadingDifference())
+            if (/*!checkShipInLandingCorridor() ||*/ !checkShipHeadingDifference())
             {
                 double dist = ship.coord.distanceTo(_vehicle->coordinate());
                 if (dist > FALLBACK_DIST.at(0))
@@ -512,12 +522,12 @@ void ShipLanding::observeState()
 
         case FALLBACK_RESTART_APPROACH:
             qCDebug(ShipLandingLog) << "observeState: FALLBACK_RESTART_APPROACH";
-            sendHomeGoto();
             state = LAND_SEND;
             break;
 
         case FALLBACK_RESTART_LOITER:
             qCDebug(ShipLandingLog) << "observeState: FALLBACK_RESTART_LOITER";
+            sendHomeGoto();
             state = LAND_REQ;
             landReq = true;
             break;

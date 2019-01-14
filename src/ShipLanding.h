@@ -99,6 +99,7 @@ private:    // attributes
     SHIP_LANDING_STATE state = IDLE;                //!< State of the Shiplanding
     bool landReq             = false;               //!< Input of observeState
     bool landCancel          = false;               //!< Input of observeState
+    QList<QGeoCoordinate> wp;                       //!< Waypoint list
 
 public:     // functions
     /*!
@@ -209,6 +210,12 @@ private:    // functions
      * \return True if okay
      */
     bool checkMaxDistShipToPlane();
+
+    /*!
+     * \brief Check if the distance ship to plane is greater than MAX_DISTANCE.
+     * \return True if okay
+     */
+    bool checkMaxDistShipToHome();
 
 public slots:
 
