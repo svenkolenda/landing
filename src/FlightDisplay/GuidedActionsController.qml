@@ -54,7 +54,9 @@ Item {
     readonly property string gotoTitle:                     qsTr("Goto Location")
     readonly property string vtolTransitionTitle:           qsTr("VTOL Transition")
     readonly property string startrtsTitle:                 qsTr("Start RtS")
-    readonly property string cancelrtsTitle:                qsTr("Cancel RtS")
+    readonly property string startrtwTitle:                 qsTr("Start RtW")
+    readonly property string cancelTitle:                   qsTr("Cancel RtS")
+    readonly property string resetTitle:                    qsTr("Cancel RtS")
 
     readonly property string armMessage:                        qsTr("Arm the vehicle.")
     readonly property string disarmMessage:                     qsTr("Disarm the vehicle")
@@ -76,8 +78,11 @@ Item {
     readonly property string mvPauseMessage:                    qsTr("Pause all vehicles at their current position.")
     readonly property string vtolTransitionFwdMessage:          qsTr("Transition VTOL to fixed wing flight.")
     readonly property string vtolTransitionMRMessage:           qsTr("Transition VTOL to multi-rotor flight.")
+    // ShipLanding
     readonly property string startrtsMessage:                   qsTr("Start the approach for landing on the ship.")
-    readonly property string cancelrtsMessage:                  qsTr("Stop approach and return to loiter at home point behind the ship.")
+    readonly property string startrtwMessage:                   qsTr("Start the approach for landing near the ship.")
+    readonly property string cancelMessage:                     qsTr("Stop approach and return to loiter at home point behind the ship.")
+    readonly property string resetMessage:                      qsTr("Stop approach and reset the statemachine.")
 
     readonly property int actionRTL:                        1
     readonly property int actionLand:                       2
@@ -100,8 +105,11 @@ Item {
     readonly property int actionMVStartMission:             19
     readonly property int actionVtolTransitionToFwdFlight:  20
     readonly property int actionVtolTransitionToMRFlight:   21
+    // ShipLanding
     readonly property int actionStartRTS:                   22
-    readonly property int actionCancelRTS:                  23
+    readonly property int actionStartRTW:                   23
+    readonly property int actionCancel:                     24
+    readonly property int actionReset:                      25
 
 
     property bool showEmergenyStop:     _guidedActionsEnabled && !_hideEmergenyStop && _vehicleArmed && _vehicleFlying
@@ -119,7 +127,9 @@ Item {
     property bool showGotoLocation:     _guidedActionsEnabled && _vehicleFlying
     // ShipLanding
     property bool showStartRTS:         _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing
-    property bool showCancelRTS:        _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing && _vehicleInRTSMode
+    property bool showStartRTW:         _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing
+    property bool showCancel:           _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing && (_vehicleInRTSMode || _vehicleInRTWMode)
+    property bool showReset:            _guidedActionsEnabled && _vehicleFlying && _activeVehicle.fixedWing && (_vehicleInRTSMode || _vehicleInRTWMode)
 
     // Note: The '_missionItemCount - 2' is a hack to not trigger resume mission when a mission ends with an RTL item
     property bool showResumeMission:    _activeVehicle && !_vehicleArmed && _vehicleWasFlying && _missionAvailable && _resumeMissionIndex > 0 && (_resumeMissionIndex < _missionItemCount - 2)
@@ -140,6 +150,7 @@ Item {
     property bool   _vehicleInRTLMode:      false
     property bool   _vehicleInLandMode:     false
     property bool   _vehicleInRTSMode:      false       // ShipLanding
+    property bool   _vehicleInRTWMode:      false       // ShipLanding
     property int    _missionItemCount:      missionController.missionItemCount
     property int    _currentMissionIndex:   missionController.currentMissionIndex
     property int    _resumeMissionIndex:    missionController.resumeMissionIndex
@@ -353,9 +364,19 @@ Item {
             confirmDialog.message = startrtsMessage
             confirmDialog.hideTrigger = true
             break;
-        case actionCancelRTS :
-            confirmDialog.title = cancelrtsTitle
-            confirmDialog.message = cancelrtsMessage
+        case actionStartRTW :
+            confirmDialog.title = startrtwTitle
+            confirmDialog.message = startrtwMessage
+            confirmDialog.hideTrigger = true
+            break;
+        case actionCancel :
+            confirmDialog.title = cancelTitle
+            confirmDialog.message = cancelMessage
+            confirmDialog.hideTrigger = true
+            break;
+        case actionReset :
+            confirmDialog.title = resetTitle
+            confirmDialog.message = resetMessage
             confirmDialog.hideTrigger = true
             break;
         default:
@@ -442,11 +463,21 @@ Item {
         // ShipLanding
         case actionStartRTS:
             _vehicleInRTSMode = true;
-            ShipLanding.landingStart()
+            ShipLanding.landingStartRtS()
             break
-        case actionCancelRTS:
+        case actionStartRTW:
+            _vehicleInRTWMode = true;
+            ShipLanding.landingStartRtW()
+            break
+        case actionCancel:
             _vehicleInRTSMode = false;
+            _vehicleInRTWMode = false;
             ShipLanding.landingCancel()
+            break
+        case actionReset:
+            _vehicleInRTSMode = false;
+            _vehicleInRTWMode = false;
+            ShipLanding.landingReset()
             break
         default:
             console.warn(qsTr("Internal error: unknown actionCode"), actionCode)

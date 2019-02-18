@@ -96,9 +96,12 @@ private:    // attributes
     QTimer* timerObserve     = new QTimer(this);    //!< Timer to observe landing
     double dir_miss;                                //!< Heading Mission landing
     __GPS ship;                                     //!< Information struct of ship
+    __GPS water;                                    //!< Information struct of water point
     SHIP_LANDING_STATE state = IDLE;                //!< State of the Shiplanding
     bool landReq             = false;               //!< Input of observeState
+    bool landWater           = false;               //!< Mealy-Input of observeState
     bool landCancel          = false;               //!< Input of observeState
+    bool landReset           = false;               //!< Input of observeState
     QList<QGeoCoordinate> wp;                       //!< Waypoint list
 
 public:     // functions
@@ -134,7 +137,7 @@ private:    // functions
      * \param dDir wanted direction change
      * \return pos
      */
-    QGeoCoordinate calcPosRelativeToShip(double distance, unsigned int altitude, double dDir);
+    QGeoCoordinate calcPosRelativeToCoord(double distance, unsigned int altitude, QGeoCoordinate coord, double dDir);
 
     /*!
      * \brief calculate vertical and horizontal distance relative to given
@@ -187,6 +190,12 @@ private:    // functions
     bool checkShipInLandingCorridor();
 
     /*!
+     * \brief Check if water point is in the landing corridor of the mission.
+     * \return true if in landing corridor
+     */
+    bool checkWaterInLandingCorridor();
+
+    /*!
      * \brief Check if the rate of the ship heading is greater than MAX_HDNG_RATE.
      * \return True if okay
      */
@@ -212,6 +221,12 @@ private:    // functions
     bool checkMaxDistShipToPlane();
 
     /*!
+     * \brief Check if the distance water point to plane is greater than MAX_DISTANCE.
+     * \return True if okay
+     */
+    bool checkMaxDistWaterToPlane();
+
+    /*!
      * \brief Check if the distance ship to plane is greater than MAX_DISTANCE.
      * \return True if okay
      */
@@ -225,14 +240,24 @@ public slots:
     Q_INVOKABLE void landingInit();
 
     /*!
-     * \brief Reaction to start the landing. Called by UI.
+     * \brief Reaction to start the landing on ship. Called by UI.
      */
-    Q_INVOKABLE void landingStart();
+    Q_INVOKABLE void landingStartRtS();
 
     /*!
-     * \brief Reaction to cancel the Landing. Called by UI.
+     * \brief Reaction to start the landing on water. Called by UI.
+     */
+    Q_INVOKABLE void landingStartRtW();
+
+    /*!
+     * \brief Reaction to cancel the landing. Called by UI.
      */
     Q_INVOKABLE void landingCancel();
+
+    /*!
+     * \brief Reaction to reset the statemachine. Called by UI.
+     */
+    Q_INVOKABLE void landingReset();
 
 private slots:
 
@@ -242,24 +267,44 @@ private slots:
     void sendHomePoint();
 
     /*!
+     * \brief Send the loiter point behind ship as home.
+     */
+    void sendHomeWaterPoint();
+
+    /*!
      * \brief GoTo the home point.
      */
     void sendHomeGoto();
 
     /*!
-     * \brief GoTo the fallback point.
+     * \brief GoTo the fallback point for the ship.
      */
     void sendFallbackGoAround();
 
     /*!
-     * \brief Build and send the landing mission.
+     * \brief GoTo the fallback point for the water point.
+     */
+    void sendFallbackGoAroundWater();
+
+    /*!
+     * \brief Build and send the landing mission for the ship.
      */
     void sendLandMission(int idx);
 
     /*!
-     * \brief Build and send the landing geofence.
+     * \brief Build and send the landing mission for the water point.
+     */
+    void sendLandMissionWater(int idx);
+
+    /*!
+     * \brief Build and send the landing geofence for the ship.
      */
     void sendGeofence();
+
+    /*!
+     * \brief Build and send the landing geofence for the water point.
+     */
+    void sendGeofenceWater();
 
     /*!
      * \brief Observe ship heading, ship position relative to wp2 (in front of ship).
