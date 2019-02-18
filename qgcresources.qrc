@@ -211,6 +211,7 @@
         <file alias="XDeleteBlack.svg">resources/XDeleteBlack.svg</file>
         <file>resources/icons/qgroundcontrol.ico</file>
         <file alias="startrts.svg">resources/startrts.svg</file>
+        <file alias="startrtw.svg">resources/startrtw.svg</file>
     </qresource>
     <qresource prefix="/res/firmware">
         <file alias="px4.png">resources/firmware/px4.png</file>

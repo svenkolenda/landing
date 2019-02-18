@@ -509,8 +509,8 @@ QGCView {
             z:                  _panel.z + 4
             title:              qsTr("Fly")
             maxHeight:          (_flightVideo.visible ? _flightVideo.y : parent.height) - toolStrip.y
-            buttonVisible:      [ _useChecklist, _guidedController.showTakeoff || !_guidedController.showLand, _guidedController.showLand && !_guidedController.showTakeoff, true, true, true, true ]
-            buttonEnabled:      [ _useChecklist && _activeVehicle, _guidedController.showTakeoff, _guidedController.showLand, _guidedController.showRTL, _guidedController.showStartRTS, _guidedController.showPause, _anyActionAvailable ]
+            buttonVisible:      [ _useChecklist, _guidedController.showTakeoff || !_guidedController.showLand, _guidedController.showLand && !_guidedController.showTakeoff, true, true, true, true, true ]
+            buttonEnabled:      [ _useChecklist && _activeVehicle, _guidedController.showTakeoff, _guidedController.showLand, _guidedController.showRTL, _guidedController.showStartRTS, _guidedController.showStartRTW, _guidedController.showPause, _anyActionAvailable ]
 
             property bool _anyActionAvailable: _guidedController.showStartMission || _guidedController.showResumeMission || _guidedController.showChangeAlt || _guidedController.showLandAbort || _guidedController.showStartRTS
             property var _actionModel: [
@@ -552,10 +552,22 @@ QGCView {
                     visible:    _guidedController.showStartRTS
                 },
                 {
-                    title:      _guidedController.cancelrtsTitle,
-                    text:       _guidedController.cancelrtsMessage,
-                    action:     _guidedController.actionCancelRTS,
-                    visible:    _guidedController.showCancelRTS
+                    title:      _guidedController.startrtwTitle,
+                    text:       _guidedController.startrtwMessage,
+                    action:     _guidedController.actionStartRTW,
+                    visible:    _guidedController.showStartRTW
+                },
+                {
+                    title:      _guidedController.cancelTitle,
+                    text:       _guidedController.cancelMessage,
+                    action:     _guidedController.actionCancel,
+                    visible:    _guidedController.showCancel
+                },
+                {
+                    title:      _guidedController.startrtsTitle,
+                    text:       _guidedController.startrtsMessage,
+                    action:     _guidedController.actionStartRTS,
+                    visible:    _guidedController.showStartRTS
                 }
             ]
 
@@ -585,6 +597,11 @@ QGCView {
                     name:       _guidedController.startrtsTitle,
                     iconSource: "/res/startrts.svg",
                     action:     _guidedController.actionStartRTS
+                },
+                {
+                    name:       _guidedController.startrtwTitle,
+                    iconSource: "/res/startrtw.svg",
+                    action:     _guidedController.actionStartRTW
                 },
                 {
                     name:       _guidedController.pauseTitle,
@@ -649,9 +666,21 @@ QGCView {
                 }
             }
 
-            onShowCancelRTSChanged: {
-                if (showCancelRTS) {
-                    confirmAction(actionCancelRTS)
+            onShowStartRTWChanged: {
+                if (showStartRTW && _vehicleInRTLMode) {
+                    confirmAction(actionStartRTW)
+                }
+            }
+
+            onShowCancelChanged: {
+                if (showCancel) {
+                    confirmAction(actionCancel)
+                }
+            }
+
+            onShowResetChanged: {
+                if (showReset) {
+                    confirmAction(actionReset)
                 }
             }
 
