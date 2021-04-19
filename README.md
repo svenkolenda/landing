@@ -1,3 +1,14 @@
+# Project work SearchWing
+Based on the open source project QGroundControl, we made a landing add-on which allows the drone to have a moving landing point. In our use case, the landing point was a moving ship.
+
+Members: Anna Pfützner, Svenja Brandt, Jonas Gehrke, Sven Kolenda
+
+
+
+
+
+
+
 # QGroundControl Ground Control Station
 
 [![Releases](https://img.shields.io/github/release/mavlink/QGroundControl.svg)](https://github.com/mavlink/QGroundControl/releases)
